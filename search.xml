@@ -164,6 +164,8 @@
 <h2 id="1-安装nginx"><a href="#1-安装nginx" class="headerlink" title="1.安装nginx"></a>1.安装nginx</h2><blockquote>
 <p>nginx 安装配置nginx的方法我上一篇<a href="https://cwiyc.top/2022/05/14/nginx-1/">文章</a>有（已安装请忽略）</p>
 </blockquote>
+<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
+<p><img src="https://s2.loli.net/2022/05/15/PThJRm6bZpW8eHQ.png" alt="image-20220515100153894"></p>
 <h2 id="2-安装npm和node"><a href="#2-安装npm和node" class="headerlink" title="2.安装npm和node"></a>2.安装npm和node</h2><h3 id="2-1-添加NodeSource-yum仓库"><a href="#2-1-添加NodeSource-yum仓库" class="headerlink" title="2.1.添加NodeSource yum仓库"></a>2.1.添加NodeSource yum仓库</h3><p>运行以下<a href="https://linuxize.com/post/curl-command-examples/"><code>curl</code>命令</a> 将 NodeSource yum 存储库添加到您的系统</p>
 <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -</span><br></pre></td></tr></table></figure>
 

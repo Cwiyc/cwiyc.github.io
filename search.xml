@@ -61,6 +61,8 @@
 <p>如果是服务器的话，初始配置的时候选择linux系统，Ubuntu和CentOS都行</p>
 <p>但Ubuntu一般用来学习linux，而CentOS用作服务器系统的比较多</p>
 </blockquote>
+<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
+<p><img src="https://s2.loli.net/2022/05/15/EyHY5G6iaMfs4wn.png" alt="image-20220515100153894"></p>
 <h2 id="2-使用Xshell-连接虚拟机或者服务器上的系统（非必要）"><a href="#2-使用Xshell-连接虚拟机或者服务器上的系统（非必要）" class="headerlink" title="2.使用Xshell 连接虚拟机或者服务器上的系统（非必要）"></a>2.使用Xshell 连接虚拟机或者服务器上的系统（非必要）</h2><p><strong>在windows下的Xshell可以远程连接服务器，直接在Xshell里操作系统终端，避免重复进入linux系统的麻烦</strong></p>
 <p><img src="https://s2.loli.net/2022/05/14/MH2f3RTSWvPg4ei.png" alt="image-20220514154612653"></p>
 <p>这里是Xshell的百度网盘链接</p>
@@ -150,5 +152,70 @@
       <categories>
         <category>小窍门</category>
       </categories>
+  </entry>
+  <entry>
+    <title>服务器部署vue的另一种姿势</title>
+    <url>/2022/05/15/nginx-2/</url>
+    <content><![CDATA[<p>[toc]</p>
+<h1 id="服务器部署vue的另一种姿势"><a href="#服务器部署vue的另一种姿势" class="headerlink" title="服务器部署vue的另一种姿势"></a>服务器部署vue的另一种姿势</h1><blockquote>
+<p>上一篇文章我已经讲到了用yarn build或npm run build 的方法将vue项目编译打包生成静态文件dist的方法</p>
+<p>这次我们讲一下如何使用yarn serve或npm run serve的方法将本地正在运行的项目暴露给外网访问</p>
+</blockquote>
+<h2 id="1-安装nginx"><a href="#1-安装nginx" class="headerlink" title="1.安装nginx"></a>1.安装nginx</h2><blockquote>
+<p>nginx 安装配置nginx的方法我上一篇<a href="https://cwiyc.top/2022/05/14/nginx-1/">文章</a>有（已安装请忽略）</p>
+</blockquote>
+<h2 id="2-安装npm和node"><a href="#2-安装npm和node" class="headerlink" title="2.安装npm和node"></a>2.安装npm和node</h2><h3 id="2-1-添加NodeSource-yum仓库"><a href="#2-1-添加NodeSource-yum仓库" class="headerlink" title="2.1.添加NodeSource yum仓库"></a>2.1.添加NodeSource yum仓库</h3><p>运行以下<a href="https://linuxize.com/post/curl-command-examples/"><code>curl</code>命令</a> 将 NodeSource yum 存储库添加到您的系统</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-安装-Node-js-和-npm"><a href="#2-2-安装-Node-js-和-npm" class="headerlink" title="2.2. 安装 Node.js 和 npm"></a>2.2. 安装 Node.js 和 npm</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo yum install nodejs</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-验证-Node-js-和-npm-安装"><a href="#2-3-验证-Node-js-和-npm-安装" class="headerlink" title="2.3. 验证 Node.js 和 npm 安装"></a>2.3. 验证 Node.js 和 npm 安装</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node -v</span><br><span class="line">npm -v</span><br></pre></td></tr></table></figure>
+
+<p>出现版本号则安装成功</p>
+<h3 id="2-4配置npm清华镜像"><a href="#2-4配置npm清华镜像" class="headerlink" title="2.4配置npm清华镜像"></a>2.4配置npm清华镜像</h3><blockquote>
+<p>如果不配置的话npm install会很慢</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#持久配置</span><br><span class="line">npm config set registry http://npm.tuna.tsinghua.edu.cn/registry</span><br><span class="line">#检查配置是否成功</span><br><span class="line">npm config get registry</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="3-将vue项目传输到服务器"><a href="#3-将vue项目传输到服务器" class="headerlink" title="3.将vue项目传输到服务器"></a>3.将vue项目传输到服务器</h2><blockquote>
+<p>通过filezilla传输或者其他的自行选择</p>
+<p>node_modules不要上传，因为服务器和你自己本地的npm环境是不一样的，上传了运行时也会报错，到时候还得老老实实删掉重新npm install.</p>
+</blockquote>
+<p>把项目放在服务器你想放的位置</p>
+<p>然后先npm install，再npm run serve</p>
+<p><img src="https://s2.loli.net/2022/05/15/yoJi21t3bcewfT4.png" alt="image-20220515102415064"></p>
+<h2 id="4-配置nginx"><a href="#4-配置nginx" class="headerlink" title="4.配置nginx"></a>4.配置nginx</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#用vim编辑你的nginx.conf</span><br><span class="line">#如果你是按我上一篇文章安装的nginx，那么就是如下命令</span><br><span class="line">vim /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://s2.loli.net/2022/05/15/QVdbDJGuvIejioF.png" alt="image-20220515104601494"></p>
+<p>上面这样配置的意思是用nginx 80端口服务来代理你的localhost:8080端口服务</p>
+<p>这时你可以在服务器上的浏览器访问localhost:80访问你的vue项目了</p>
+<h2 id="5-防火墙"><a href="#5-防火墙" class="headerlink" title="5.防火墙"></a>5.防火墙</h2><p><strong>！！！但是这样在外网是访问不了的，由于服务器防火墙的问题</strong></p>
+<p>CentOS7默认使用的是firewall作为防火墙，这里改为iptables防火墙</p>
+<h3 id="5-1-关闭firewalld"><a href="#5-1-关闭firewalld" class="headerlink" title="5.1.关闭firewalld"></a>5.1.关闭firewalld</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld  </span><br><span class="line">systemctl mask firewalld</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-使用iptables服务"><a href="#5-2-使用iptables服务" class="headerlink" title="5.2.使用iptables服务"></a>5.2.使用iptables服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、安装iptables防火墙</span><br><span class="line">yum install iptables-services #安装</span><br><span class="line"></span><br><span class="line">2、修改文件配置允许80端口</span><br><span class="line">vim /etc/sysconfig/iptables #编辑防火墙配置文件</span><br><span class="line">按i进入文本编辑 在原文档中找到</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT</span><br><span class="line">在该行下面添加</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</span><br><span class="line">:wq! #保存退出</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#开放443端口(HTTPS)</span><br><span class="line">iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"> </span><br><span class="line">#保存上述规则</span><br><span class="line">service iptables save</span><br><span class="line"> </span><br><span class="line">#开启服务</span><br><span class="line">systemctl restart iptables.service</span><br><span class="line"></span><br><span class="line">#设置防火墙开机启动</span><br><span class="line">systemctl enable iptables.service </span><br></pre></td></tr></table></figure>
+
+<p>防火墙参考整合了一下两篇文章</p>
+<p><a href="https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434">https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434</a></p>
+<p><a href="https://blog.csdn.net/sinat_29821865/article/details/80982250">https://blog.csdn.net/sinat_29821865/article/details/80982250</a></p>
+<h3 id="5-3-重启nginx服务器"><a href="#5-3-重启nginx服务器" class="headerlink" title="5.3.重启nginx服务器"></a>5.3.重启nginx服务器</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h1 id="现在你可以在外网输入服务器ip地址访问你的项目了"><a href="#现在你可以在外网输入服务器ip地址访问你的项目了" class="headerlink" title="现在你可以在外网输入服务器ip地址访问你的项目了"></a>现在你可以在外网输入服务器ip地址访问你的项目了</h1>]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>Vue</tag>
+      </tags>
   </entry>
 </search>

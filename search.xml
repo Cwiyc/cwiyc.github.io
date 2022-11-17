@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>es6尾调用</title>
+    <url>/2022/09/25/es6%E5%B0%BE%E8%B0%83%E7%94%A8/</url>
+    <content><![CDATA[<h3 id="1-尾调用优化"><a href="#1-尾调用优化" class="headerlink" title="1.尾调用优化"></a>1.尾调用优化</h3><blockquote>
+<p>尾调用之所以与其他调用不同，就在于它的特殊的调用位置。</p>
+<p>我们知道，函数调用会在内存形成一个“调用记录”，又称“调用帧”（call frame），保存调用位置和内部变量等信息。如果在函数<code>A</code>的内部调用函数<code>B</code>，那么在<code>A</code>的调用帧上方，还会形成一个<code>B</code>的调用帧。等到<code>B</code>运行结束，将结果返回到<code>A</code>，<code>B</code>的调用帧才会消失。如果函数<code>B</code>内部还调用函数<code>C</code>，那就还有一个<code>C</code>的调用帧，以此类推。所有的调用帧，就形成一个“调用栈”（call stack）。</p>
+<p>尾调用由于是函数的最后一步操作，所以不需要保留外层函数的调用帧，因为调用位置、内部变量等信息都不会再用到了，只要直接用内层函数的调用帧，取代外层函数的调用帧就可以了。</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">f</span>(<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">let</span> m = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">let</span> n = <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">g</span>(m + n);</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_">f</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 等同于</span></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">f</span>(<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">g</span>(<span class="number">3</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_">f</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 等同于</span></span><br><span class="line"><span class="title function_">g</span>(<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>上面代码中，如果函数<code>g</code>不是尾调用，函数<code>f</code>就需要保存内部变量<code>m</code>和<code>n</code>的值、<code>g</code>的调用位置等信息。但由于调用<code>g</code>之后，函数<code>f</code>就结束了，所以执行到最后一步，完全可以删除<code>f(x)</code>的调用帧，只保留<code>g(3)</code>的调用帧。</p>
+<p>这就叫做“尾调用优化”（Tail call optimization），即只保留内层函数的调用帧。如果所有函数都是尾调用，那么完全可以做到每次执行时，调用帧只有一项，这将大大节省内存。这就是“尾调用优化”的意义。</p>
+<p>注意，只有不再用到外层函数的内部变量，内层函数的调用帧才会取代外层函数的调用帧，否则就无法进行“尾调用优化”。</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">addOne</span>(<span class="params">a</span>)&#123;</span><br><span class="line">  <span class="keyword">var</span> one = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">inner</span>(<span class="params">b</span>)&#123;</span><br><span class="line">    <span class="keyword">return</span> b + one;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">inner</span>(a);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>上面的函数不会进行尾调用优化，因为内层函数<code>inner</code>用到了外层函数<code>addOne</code>的内部变量<code>one</code>。</p>
+<p>注意，目前只有 Safari 浏览器支持尾调用优化，Chrome 和 Firefox 都不支持。</p>
+</blockquote>
+<h3 id="2-尾递归"><a href="#2-尾递归" class="headerlink" title="2.尾递归"></a>2.尾递归</h3><p>函数调用自身，称为递归。如果尾调用自身，就称为尾递归。</p>
+<p>递归非常耗费内存，因为需要同时保存成千上百个调用帧，很容易发生“栈溢出”错误（stack overflow）。但对于尾递归来说，由于只存在一个调用帧，所以永远不会发生“栈溢出”错误。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">factorial</span>(<span class="params">n</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (n === <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">return</span> n * <span class="title function_">factorial</span>(n - <span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">factorial</span>(<span class="number">5</span>) <span class="comment">// 120</span></span><br></pre></td></tr></table></figure>
+
+<p>上面代码是一个阶乘函数，计算<code>n</code>的阶乘，最多需要保存<code>n</code>个调用记录，复杂度 O(n) 。</p>
+<p>如果改写成尾递归，只保留一个调用记录，复杂度 O(1) 。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">factorial</span>(<span class="params">n, total</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (n === <span class="number">1</span>) <span class="keyword">return</span> total;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">factorial</span>(n - <span class="number">1</span>, n * total);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">factorial</span>(<span class="number">5</span>, <span class="number">1</span>) <span class="comment">// 120</span></span><br></pre></td></tr></table></figure>
+
+<p>还有一个比较著名的例子，就是计算 Fibonacci 数列，也能充分说明尾递归优化的重要性。</p>
+<p>非尾递归的 Fibonacci 数列实现如下。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">Fibonacci</span> (n) &#123;</span><br><span class="line">  <span class="keyword">if</span> ( n &lt;= <span class="number">1</span> ) &#123;<span class="keyword">return</span> <span class="number">1</span>&#125;;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Fibonacci</span>(n - <span class="number">1</span>) + <span class="title class_">Fibonacci</span>(n - <span class="number">2</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">10</span>) <span class="comment">// 89</span></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">100</span>) <span class="comment">// 超时</span></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">500</span>) <span class="comment">// 超时</span></span><br></pre></td></tr></table></figure>
+
+<p>尾递归优化过的 Fibonacci 数列实现如下。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">Fibonacci2</span> (n , ac1 = <span class="number">1</span> , ac2 = <span class="number">1</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span>( n &lt;= <span class="number">1</span> ) &#123;<span class="keyword">return</span> ac2&#125;;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Fibonacci2</span> (n - <span class="number">1</span>, ac2, ac1 + ac2);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">100</span>) <span class="comment">// 573147844013817200000</span></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">1000</span>) <span class="comment">// 7.0330367711422765e+208</span></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">10000</span>) <span class="comment">// Infinity</span></span><br></pre></td></tr></table></figure>
+
+<p>由此可见，“尾调用优化”对递归操作意义重大，所以一些函数式编程语言将其写入了语言规格。ES6 亦是如此，第一次明确规定，所有 ECMAScript 的实现，都必须部署“尾调用优化”。这就是说，ES6 中只要使用尾递归，就不会发生栈溢出（或者层层递归造成的超时），相对节省内存。</p>
+]]></content>
+      <categories>
+        <category>技术</category>
+      </categories>
+      <tags>
+        <tag>es6</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2022/04/06/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+]]></content>
+  </entry>
+  <entry>
+    <title>将vue项目部署到服务器上</title>
+    <url>/2022/05/14/nginx-1/</url>
+    <content><![CDATA[<h1 id="如何将已经写好的vue项目部署到服务器上"><a href="#如何将已经写好的vue项目部署到服务器上" class="headerlink" title="如何将已经写好的vue项目部署到服务器上"></a>如何将已经写好的vue项目部署到服务器上</h1><h2 id="1-首先你得有一台安装了linux系统的服务器或者虚拟机"><a href="#1-首先你得有一台安装了linux系统的服务器或者虚拟机" class="headerlink" title="1.首先你得有一台安装了linux系统的服务器或者虚拟机"></a>1.首先你得有一台安装了linux系统的服务器或者虚拟机</h2><blockquote>
+<p>我测试使用的是虚拟机上的CentOS 7系统，</p>
+<p>虚拟机在这里模拟的是服务器，</p>
+<p>虚拟机的安装和下载我就不多掰掰了。</p>
+<p>如果是服务器的话，初始配置的时候选择linux系统，Ubuntu和CentOS都行</p>
+<p>但Ubuntu一般用来学习linux，而CentOS用作服务器系统的比较多</p>
+</blockquote>
+<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
+<p><img src="http://img.cwiyc.top/nginx-11.png" alt="image-20220515100153894"></p>
+<h2 id="2-使用Xshell-连接虚拟机或者服务器上的系统（非必要）"><a href="#2-使用Xshell-连接虚拟机或者服务器上的系统（非必要）" class="headerlink" title="2.使用Xshell 连接虚拟机或者服务器上的系统（非必要）"></a>2.使用Xshell 连接虚拟机或者服务器上的系统（非必要）</h2><p><strong>在windows下的Xshell可以远程连接服务器，直接在Xshell里操作系统终端，避免重复进入linux系统的麻烦</strong></p>
+<p><img src="http://img.cwiyc.top/nginx-12.png" alt="image-20220514154612653"></p>
+<p>这里是Xshell的百度网盘链接</p>
+<p>链接：<a href="https://pan.baidu.com/s/1nN32a974_Q_IcRGq8cci6Q">https://pan.baidu.com/s/1nN32a974_Q_IcRGq8cci6Q</a><br>提取码：0922</p>
+<h2 id="3-在自己的电脑上下载filezilla"><a href="#3-在自己的电脑上下载filezilla" class="headerlink" title="3.在自己的电脑上下载filezilla"></a>3.在自己的电脑上下载filezilla</h2><p><strong>filezilla可以将自己本地的文件传输到服务器上</strong>，官网下载地址<a href="https://filezilla-project.org/download.php?type=server">https://filezilla-project.org/download.php?type=server</a></p>
+<p>​                打卡filezilla，新建一个站点</p>
+<p>​                协议 SFTP</p>
+<p>​                主机 （在服务器终端输入ifconfig查看ip地址）</p>
+<p>​                端口号 默认22</p>
+<p>​                用户名 root</p>
+<p><img src="http://img.cwiyc.top/nginx-13.png" alt="image-20220514160123754"></p>
+<p><strong>这样就连接成功了，右边是服务器的目录结构，把文件拖进去就自动上传了</strong></p>
+<p><img src="http://img.cwiyc.top/nginx-14.png" alt="image-20220514160240779"></p>
+<h2 id="4-在CentOS-7-上安装Nginx"><a href="#4-在CentOS-7-上安装Nginx" class="headerlink" title="4.在CentOS 7 上安装Nginx"></a>4.在CentOS 7 上安装Nginx</h2><blockquote>
+<p>Nginx同Apache一样都是一种WEB服务器。</p>
+<p>是一款自由的、开源的、高性能的HTTP服务器和反向代理服务器；同时也是一个IMAP、POP3、SMTP代理服务器；</p>
+<p>Nginx可以作为一个HTTP服务器进行网站的发布处理，另外Nginx可以作为反向代理进行负载均衡的实现。</p>
+</blockquote>
+<h3 id="4-1-安装编译器以及依赖的库文件"><a href="#4-1-安装编译器以及依赖的库文件" class="headerlink" title="4.1.安装编译器以及依赖的库文件"></a>4.1.安装编译器以及依赖的库文件</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">yum -y install make zlib zlib-devel gcc gcc-c++ libtool openssl openssl-devel pcre pcre-devel</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-2-下载nginx并解压"><a href="#4-2-下载nginx并解压" class="headerlink" title="4.2.下载nginx并解压"></a>4.2.下载nginx并解压</h3><p>nginx-1.21.6.tar.gz这个是nginx的一个版本包而已，可以下载任何一个你想的版本。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd /usr/local &amp;&amp; wget http://nginx.org/download/nginx-1.21.6.tar.gz &amp;&amp; tar zxvf nginx-1.21.6.tar.gz</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-3-安装nginx"><a href="#4-3-安装nginx" class="headerlink" title="4.3.安装nginx"></a>4.3.安装nginx</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd nginx-1.21.6</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">配置</span><br><span class="line">./configure --prefix=/usr/local/nginx --with-http_stub_status_module --with-pcre  --with-http_ssl_module</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">编译和安装</span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="4-4-启动、停止、重启nginx"><a href="#4-4-启动、停止、重启nginx" class="headerlink" title="4.4.启动、停止、重启nginx"></a>4.4.启动、停止、重启nginx</h3><p>这里的/usr/local/nginx/sbin/nginx是要找到nginx的位置</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx</span><br><span class="line">/usr/local/nginx/sbin/nginx -s stop</span><br><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
+
+<p>此处参考<a href="https://www.jianshu.com/p/c051164e4203">https://www.jianshu.com/p/c051164e4203</a></p>
+<h2 id="5-配置nginx"><a href="#5-配置nginx" class="headerlink" title="5.配置nginx"></a>5.配置nginx</h2><h3 id="5-1-创建网站根目录"><a href="#5-1-创建网站根目录" class="headerlink" title="5.1.创建网站根目录"></a>5.1.创建网站根目录</h3><p>先回到根目录</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">mkdir /www</span><br><span class="line">mkdir /html</span><br></pre></td></tr></table></figure>
+<p>相当于在根目录下创建了 /www/html 这两级文件</p>
+<h3 id="5-2-传输文件"><a href="#5-2-传输文件" class="headerlink" title="5.2.传输文件"></a>5.2.传输文件</h3><p>将vue项目使用</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">yarn build  或者 npm run build</span><br></pre></td></tr></table></figure>
+
+<p>编译打包，会生成一个dist文件夹，将**!里面!**的所有文件通过filezilla放在刚刚创建的/www/html下</p>
+<p><img src="http://img.cwiyc.top/nginx-15.png" alt="image-20220514163049571"></p>
+<h3 id="5-3-配置nginx文件"><a href="#5-3-配置nginx文件" class="headerlink" title="5.3.配置nginx文件"></a>5.3.配置nginx文件</h3><h4 id="5-3-1-用vim打开nginx-conf（nginx的配置文件）"><a href="#5-3-1-用vim打开nginx-conf（nginx的配置文件）" class="headerlink" title="5.3.1.用vim打开nginx.conf（nginx的配置文件）"></a>5.3.1.用vim打开nginx.conf（nginx的配置文件）</h4><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">vim /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
+
+<h4 id="5-3-2-按-i-健进入插入模式"><a href="#5-3-2-按-i-健进入插入模式" class="headerlink" title="5.3.2.按 i 健进入插入模式"></a>5.3.2.按 <strong>i</strong> 健进入插入模式</h4><p>将画圈的地方改成这样，注意分号不能少</p>
+<p>按ESC退出插入模式</p>
+<p>按冒号:</p>
+<p>输入wq 保存退出</p>
+<p><img src="http://img.cwiyc.top/nginx-16.png" alt="image-20220514163538337"></p>
+<h2 id="6-外网访问"><a href="#6-外网访问" class="headerlink" title="6.外网访问"></a>6.<del>外网访问</del></h2><p><code>！！！如果在服务器上不需要这一步！，安全组放通端口即可。虚拟机上则需要这一步。！！！</code></p>
+<blockquote>
+<p>如果按照上面这样设置的话只能在服务器里通过localhost访问</p>
+<p>我们还需要配置外网访问</p>
+</blockquote>
+<p>注意上图中画圈的上面有个 server_name</p>
+<p>将localhost改为你服务器的ip地址，这样就能在外网访问你的web服务器了</p>
+<p>如果是虚拟机且用的是NAT模式的话，192.168….这个只能在同一局域网下访问</p>
+<p>:wq保存退出</p>
+<p><strong>！！！但是这样还是访问不了，由于服务器防火墙的问题</strong></p>
+<p>CentOS7默认使用的是firewall作为防火墙，这里改为iptables防火墙</p>
+<p>关闭firewalld</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld  </span><br><span class="line">systemctl mask firewalld</span><br></pre></td></tr></table></figure>
+
+<p>使用iptables服务</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">1、安装iptables防火墙</span><br><span class="line">yum install iptables-services #安装</span><br><span class="line"></span><br><span class="line">2、修改文件配置允许80端口</span><br><span class="line">vim /etc/sysconfig/iptables #编辑防火墙配置文件</span><br><span class="line">按i进入文本编辑 在原文档中找到</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT</span><br><span class="line">在该行下面添加</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</span><br><span class="line">:wq! #保存退出</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">开放443端口(HTTPS)</span></span><br><span class="line">iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"><span class="meta prompt_"> </span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">保存上述规则</span></span><br><span class="line">service iptables save</span><br><span class="line"><span class="meta prompt_"> </span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">开启服务</span></span><br><span class="line">systemctl restart iptables.service</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">设置防火墙开机启动</span></span><br><span class="line">systemctl enable iptables.service </span><br></pre></td></tr></table></figure>
+
+<p>防火墙参考整合了一下两篇文章</p>
+<p><a href="https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434">https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434</a></p>
+<p><a href="https://blog.csdn.net/sinat_29821865/article/details/80982250">https://blog.csdn.net/sinat_29821865/article/details/80982250</a></p>
+<h2 id="7-重启nginx服务器"><a href="#7-重启nginx服务器" class="headerlink" title="7.重启nginx服务器"></a>7.重启nginx服务器</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h1 id="大功告成"><a href="#大功告成" class="headerlink" title="大功告成"></a>大功告成</h1><p><strong>在服务器浏览器里输入localhost:80 可进入你的项目</strong></p>
+<p><strong>在别的浏览器里输入你设置的ip地址也可进入你的项目</strong></p>
+<p><img src="http://img.cwiyc.top/nginx-17.png" alt="image-20220514164134146"></p>
+]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>Vue</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>3D旋转木马 HTML+css</title>
+    <url>/2022/04/07/mua/</url>
+    <content><![CDATA[<p><img src="https://img-blog.csdnimg.cn/2021031120140990.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L1dDdmlzb24=,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span> <span class="attr">lang</span>=<span class="string">&quot;en&quot;</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">charset</span>=<span class="string">&quot;UTF-8&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">http-equiv</span>=<span class="string">&quot;X-UA-Compatible&quot;</span> <span class="attr">content</span>=<span class="string">&quot;IE=edge&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">meta</span> <span class="attr">name</span>=<span class="string">&quot;viewport&quot;</span> <span class="attr">content</span>=<span class="string">&quot;width=device-width, initial-scale=1.0&quot;</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">title</span>&gt;</span>旋转木马<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">style</span>&gt;</span><span class="language-css"></span></span><br><span class="line"><span class="language-css">        *&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">margin</span>: <span class="number">0</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">padding</span>:<span class="number">0</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">body</span>&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">display</span>: flex;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">justify-content</span>: center;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">align-items</span>: center;<span class="comment">/*以上三行是旋转木马网页居中*/</span></span></span><br><span class="line"><span class="language-css">            <span class="attribute">height</span>: <span class="number">100vh</span>;<span class="comment">/*高度占网页全部*/</span></span></span><br><span class="line"><span class="language-css">            <span class="attribute">background-color</span>: black;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">perspective</span>: <span class="number">900px</span>;<span class="comment">/*视距*/</span></span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span>&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">position</span>: relative;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">width</span>: <span class="number">300px</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">height</span>: <span class="number">200px</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">cursor</span>: pointer;<span class="comment">/*hover时鼠标箭头变手指*/</span></span></span><br><span class="line"><span class="language-css">            <span class="attribute">transform-style</span>: preserve-<span class="number">3</span>d;<span class="comment">/*写这个才能实现3d效果*/</span></span></span><br><span class="line"><span class="language-css">            <span class="attribute">animation</span>:rotate <span class="number">20s</span> linear infinite;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">img</span>&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">width</span>: <span class="number">300px</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">height</span>: <span class="number">200px</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span><span class="selector-pseudo">:hover</span>&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">animation-play-state</span>: paused;<span class="comment">/*hover是旋转木马停止*/</span></span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span> <span class="selector-tag">div</span>&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">position</span>: absolute;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">top</span>: <span class="number">0</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">left</span>: <span class="number">0</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">width</span>: <span class="number">100%</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">height</span>: <span class="number">100%</span>;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">text-align</span>: center;</span></span><br><span class="line"><span class="language-css">            -webkit-box-reflect:below <span class="number">15px</span> </span></span><br><span class="line"><span class="language-css">            <span class="built_in">-webkit-linear-gradient</span>(transparent <span class="number">10%</span>,<span class="built_in">rgba</span>(<span class="number">255</span>,<span class="number">255</span>,<span class="number">255</span>,.<span class="number">3</span>));</span></span><br><span class="line"><span class="language-css">            <span class="comment">/*实现倒影 below-倒影在原方块的下方  15px-原方块距离倒影的距离  倒影的10%设置为全透明， rgba设置剩下倒影的透明度*/</span></span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span> <span class="selector-tag">div</span><span class="selector-pseudo">:nth-child</span>(<span class="number">1</span>)&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">transform</span>: <span class="built_in">translatez</span>(<span class="number">300px</span>);<span class="comment">/*函数将元素从屏幕“向外”移动300像素到用户。这使得在2D显示器上观看时元素显得更大，*/</span></span></span><br><span class="line"><span class="language-css">            <span class="attribute">background-color</span>: <span class="number">#c14c39</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span> <span class="selector-tag">div</span><span class="selector-pseudo">:nth-child</span>(<span class="number">2</span>)&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">transform</span>:<span class="built_in">rotateY</span>(<span class="number">60deg</span>) <span class="built_in">translatez</span>(<span class="number">300px</span>);<span class="comment">/*rotateY表示绕y轴旋转60° */</span></span></span><br><span class="line"><span class="language-css">            <span class="attribute">background-color</span>: <span class="number">#6e9c72</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span> <span class="selector-tag">div</span><span class="selector-pseudo">:nth-child</span>(<span class="number">3</span>)&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">transform</span>:<span class="built_in">rotateY</span>(<span class="number">120deg</span>) <span class="built_in">translatez</span>(<span class="number">300px</span>);</span></span><br><span class="line"><span class="language-css">            <span class="attribute">background-color</span>: <span class="number">#5e5f7a</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span> <span class="selector-tag">div</span><span class="selector-pseudo">:nth-child</span>(<span class="number">4</span>)&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">transform</span>:<span class="built_in">rotateY</span>(<span class="number">180deg</span>) <span class="built_in">translatez</span>(<span class="number">300px</span>);</span></span><br><span class="line"><span class="language-css">            <span class="attribute">background-color</span>: <span class="number">#f5eb98</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span> <span class="selector-tag">div</span><span class="selector-pseudo">:nth-child</span>(<span class="number">5</span>)&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">transform</span>:<span class="built_in">rotateY</span>(<span class="number">240deg</span>) <span class="built_in">translatez</span>(<span class="number">300px</span>);</span></span><br><span class="line"><span class="language-css">            <span class="attribute">background-color</span>: <span class="number">#50a3bc</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="selector-tag">section</span> <span class="selector-tag">div</span><span class="selector-pseudo">:nth-child</span>(<span class="number">6</span>)&#123;</span></span><br><span class="line"><span class="language-css">            <span class="attribute">transform</span>:<span class="built_in">rotateY</span>(<span class="number">300deg</span>) <span class="built_in">translatez</span>(<span class="number">300px</span>);</span></span><br><span class="line"><span class="language-css">            <span class="attribute">background-color</span>: <span class="number">#f9a99a</span>;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">        <span class="keyword">@keyframes</span> rotate &#123;</span></span><br><span class="line"><span class="language-css">            <span class="selector-tag">to</span>&#123;</span></span><br><span class="line"><span class="language-css">                <span class="attribute">transform</span>: <span class="built_in">rotateY</span>(<span class="number">360deg</span>);</span></span><br><span class="line"><span class="language-css">            &#125;</span></span><br><span class="line"><span class="language-css">        &#125;</span></span><br><span class="line"><span class="language-css">    </span><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">section</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">&quot;img2/1.jpg&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">&quot;img2/2.jpg&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">&quot;img2/3.jpg&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">&quot;img2/4.jpg&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">&quot;img2/5.jpg&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">div</span>&gt;</span><span class="tag">&lt;<span class="name">img</span> <span class="attr">src</span>=<span class="string">&quot;img2/6.jpg&quot;</span>&gt;</span><span class="tag">&lt;/<span class="name">div</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">section</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>图片要自己加啊啊啊！<br>效果图视频我不会加。。。<br>有什么问题欢迎大家在评论区讨论！！</p>
+]]></content>
+      <categories>
+        <category>html+css</category>
+      </categories>
+      <tags>
+        <tag>CSS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>服务器部署vue的另一种姿势</title>
+    <url>/2022/05/15/nginx-2/</url>
+    <content><![CDATA[<h1 id="服务器部署vue的另一种姿势"><a href="#服务器部署vue的另一种姿势" class="headerlink" title="服务器部署vue的另一种姿势"></a>服务器部署vue的另一种姿势</h1><blockquote>
+<p>上一篇文章我已经讲到了用yarn build或npm run build 的方法将vue项目编译打包生成静态文件dist的方法</p>
+<p>这次我们讲一下如何使用yarn serve或npm run serve的方法将本地正在运行的项目暴露给外网访问</p>
+</blockquote>
+<h2 id="1-安装nginx"><a href="#1-安装nginx" class="headerlink" title="1.安装nginx"></a>1.安装nginx</h2><blockquote>
+<p>nginx 安装配置nginx的方法我上一篇<a href="https://cwiyc.top/2022/05/14/nginx-1/">文章</a>有（已安装请忽略）</p>
+</blockquote>
+<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
+<p><img src="http://img.cwiyc.top/nginx-21.png" alt="image-20220515100153894"></p>
+<h2 id="2-安装npm和node"><a href="#2-安装npm和node" class="headerlink" title="2.安装npm和node"></a>2.安装npm和node</h2><h3 id="2-1-添加NodeSource-yum仓库"><a href="#2-1-添加NodeSource-yum仓库" class="headerlink" title="2.1.添加NodeSource yum仓库"></a>2.1.添加NodeSource yum仓库</h3><p>运行以下<a href="https://linuxize.com/post/curl-command-examples/"><code>curl</code>命令</a> 将 NodeSource yum 存储库添加到您的系统</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-安装-Node-js-和-npm"><a href="#2-2-安装-Node-js-和-npm" class="headerlink" title="2.2. 安装 Node.js 和 npm"></a>2.2. 安装 Node.js 和 npm</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo yum install nodejs</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-验证-Node-js-和-npm-安装"><a href="#2-3-验证-Node-js-和-npm-安装" class="headerlink" title="2.3. 验证 Node.js 和 npm 安装"></a>2.3. 验证 Node.js 和 npm 安装</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node -v</span><br><span class="line">npm -v</span><br></pre></td></tr></table></figure>
+
+<p>出现版本号则安装成功</p>
+<h3 id="2-4配置npm清华镜像"><a href="#2-4配置npm清华镜像" class="headerlink" title="2.4配置npm清华镜像"></a>2.4配置npm清华镜像</h3><blockquote>
+<p>如果不配置的话npm install会很慢</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#持久配置</span><br><span class="line">npm config set registry http://npm.tuna.tsinghua.edu.cn/registry</span><br><span class="line">#检查配置是否成功</span><br><span class="line">npm config get registry</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="3-将vue项目传输到服务器"><a href="#3-将vue项目传输到服务器" class="headerlink" title="3.将vue项目传输到服务器"></a>3.将vue项目传输到服务器</h2><blockquote>
+<p>通过filezilla传输或者其他的自行选择</p>
+<p>node_modules不要上传，因为服务器和你自己本地的npm环境是不一样的，上传了运行时也会报错，到时候还得老老实实删掉重新npm install.</p>
+</blockquote>
+<p>把项目放在服务器你想放的位置</p>
+<p>然后先npm install，再npm run serve</p>
+<p><img src="http://img.cwiyc.top/nginx-22.png" alt="image-20220515102415064"></p>
+<h2 id="4-配置nginx"><a href="#4-配置nginx" class="headerlink" title="4.配置nginx"></a>4.配置nginx</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#用vim编辑你的nginx.conf</span><br><span class="line">#如果你是按我上一篇文章安装的nginx，那么就是如下命令</span><br><span class="line">vim /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
+
+<p><img src="http://img.cwiyc.top/nginx-23.png" alt="image-20220515104601494"></p>
+<p>上面这样配置的意思是用nginx 80端口服务来代理你的localhost:8080端口服务</p>
+<p>这时你可以在服务器上的浏览器访问localhost:80访问你的vue项目了</p>
+<h2 id="5-防火墙"><a href="#5-防火墙" class="headerlink" title="5.防火墙"></a>5.<del>防火墙</del></h2><p><code>！！！如果在服务器上不需要这一步！，安全组放通端口即可。虚拟机上则需要这一步。！！！</code></p>
+<p><strong>！！！但是这样在外网是访问不了的，由于服务器防火墙的问题</strong></p>
+<p>CentOS7默认使用的是firewall作为防火墙，这里改为iptables防火墙</p>
+<h3 id="5-1-关闭firewalld"><a href="#5-1-关闭firewalld" class="headerlink" title="5.1.关闭firewalld"></a>5.1.关闭firewalld</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld  </span><br><span class="line">systemctl mask firewalld</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-使用iptables服务"><a href="#5-2-使用iptables服务" class="headerlink" title="5.2.使用iptables服务"></a>5.2.使用iptables服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、安装iptables防火墙</span><br><span class="line">yum install iptables-services #安装</span><br><span class="line"></span><br><span class="line">2、修改文件配置允许80端口</span><br><span class="line">vim /etc/sysconfig/iptables #编辑防火墙配置文件</span><br><span class="line">按i进入文本编辑 在原文档中找到</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT</span><br><span class="line">在该行下面添加</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</span><br><span class="line">:wq! #保存退出</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#开放443端口(HTTPS)</span><br><span class="line">iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"> </span><br><span class="line">#保存上述规则</span><br><span class="line">service iptables save</span><br><span class="line"> </span><br><span class="line">#开启服务</span><br><span class="line">systemctl restart iptables.service</span><br><span class="line"></span><br><span class="line">#设置防火墙开机启动</span><br><span class="line">systemctl enable iptables.service </span><br></pre></td></tr></table></figure>
+
+<p>防火墙参考整合了一下两篇文章</p>
+<p><a href="https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434">https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434</a></p>
+<p><a href="https://blog.csdn.net/sinat_29821865/article/details/80982250">https://blog.csdn.net/sinat_29821865/article/details/80982250</a></p>
+<h3 id="5-3-重启nginx服务器"><a href="#5-3-重启nginx服务器" class="headerlink" title="5.3.重启nginx服务器"></a>5.3.重启nginx服务器</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h1 id="现在你可以在外网输入服务器ip地址访问你的项目了"><a href="#现在你可以在外网输入服务器ip地址访问你的项目了" class="headerlink" title="现在你可以在外网输入服务器ip地址访问你的项目了"></a>现在你可以在外网输入服务器ip地址访问你的项目了</h1>]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>Vue</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>singlepush</title>
+    <url>/2022/10/04/singlepush/</url>
+    <content><![CDATA[<hr>
+<h1 id="一、申请微信公众号测试号"><a href="#一、申请微信公众号测试号" class="headerlink" title="一、申请微信公众号测试号"></a>一、申请微信公众号测试号</h1><p><a href="https://mp.weixin.qq.com/debug/cgi-bin/sandboxinfo?action=showinfo&t=sandbox/index">https://mp.weixin.qq.com/debug/cgi-bin/sandboxinfo?action=showinfo&amp;t=sandbox/index</a><br><code>微信扫码登录：</code><br><img src="https://img-blog.csdnimg.cn/738ca2c8960a4a999f1c488daeba2149.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1 id="二、让目标扫码关注公众号"><a href="#二、让目标扫码关注公众号" class="headerlink" title="二、让目标扫码关注公众号"></a>二、让目标扫码关注公众号</h1><p><img src="https://img-blog.csdnimg.cn/a4c61d03f33c4ca88743bd084be77e4e.png" alt="在这里插入图片描述"></p>
+<hr>
+<h1 id="三、新增模板"><a href="#三、新增模板" class="headerlink" title="三、新增模板"></a>三、新增模板</h1><p>这一步可以自由发挥，这里我只弄了一个天气的api，其他的api网上都有。。。<br><img src="https://img-blog.csdnimg.cn/69977830740442ceaa292abeed5e6658.png" alt="请添加图片描述"><br>这个是我的模板</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line">今天比昨天更爱你了哟 </span><br><span class="line">&#123;&#123;city.<span class="property">DATA</span>&#125;&#125; &#123;&#123;textDay.<span class="property">DATA</span>&#125;&#125; </span><br><span class="line">&#123;&#123;tempMin.<span class="property">DATA</span>&#125;&#125;°~&#123;&#123;tempMax.<span class="property">DATA</span>&#125;&#125;° </span><br><span class="line">记得打卡哟</span><br></pre></td></tr></table></figure>
+<p>这里推荐 <a href="https://dev.qweather.com/">和风天气</a></p>
+<ol>
+<li>注册登录</li>
+<li>应用管理-&gt;创建应用-&gt;得到key</li>
+<li>城市代码查询<code>https://github.com/qwd/LocationList/blob/master/China-City-List-latest.csv</code>，可以按住Ctrl+F查找</li>
+<li>开发版的天气api为<code>https://devapi.qweather.com/v7/weather/3d?location=这里填城市代码&amp;key=刚刚得到的key</code>，下面给一个长沙天心区的例子<br> <a href="https://devapi.qweather.com/v7/weather/3d%EF%BC%9Flocation=101250108&amp;key=7997019c2b4941beb6c682c3ca">https://devapi.qweather.com/v7/weather/3d？location=101250108&amp;key=7997019c2b4941beb6c682c3ca</a></li>
+</ol>
+<p><img src="https://img-blog.csdnimg.cn/b41d2e05962445e0a8497c06160be6a5.png" alt="请添加图片描述"></p>
+<hr>
+<h1 id="四、使用leancloud部署云函数"><a href="#四、使用leancloud部署云函数" class="headerlink" title="四、使用leancloud部署云函数"></a>四、使用leancloud部署云函数</h1><p><strong>！！！前提是得有node环境！！！</strong></p>
+<ol>
+<li><p>进入<a href="https://www.leancloud.cn/">leancloud官网</a>注册登录</p>
+</li>
+<li><p>控制台-&gt;创建应用</p>
+</li>
+<li><p>进入该应用-&gt;云函数-&gt;部署-&gt;部署项目<br><img src="https://img-blog.csdnimg.cn/7ba673bed571459d887e5db95b2fda28.png" alt="在这里插入图片描述"></p>
+</li>
+<li><p>安装与登录命令行工具<a href="https://releases.leanapp.cn/#/leancloud/lean-cli/releases">选择对应版本</a>，现在一般电脑都是64位的选这个，下载完成点击安装就可以了。<img src="https://img-blog.csdnimg.cn/4924242f25ea4b3a94aab35176b38202.png" alt="在这里插入图片描述"></p>
+</li>
+<li><p>随便在哪创建一个文件夹作为项目的目录，在该目录下终端输入</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">//先登录</span><br><span class="line">lean login --region cn-n1</span><br><span class="line">//创建新项目</span><br><span class="line">lean new 项目名称  		//比如lean new singlepush</span><br><span class="line">//选择nodejs express</span><br></pre></td></tr></table></figure>
+<p><img src="https://img-blog.csdnimg.cn/30544e6eab0a41a689ff1e7eb5f19cd3.png"></p>
+</li>
+<li><p>你就会得到一个<br><img src="https://img-blog.csdnimg.cn/01153803425c42af80e35f7d7210a0c9.png" alt="在这里插入图片描述"></p>
+</li>
+<li><p>将cloud.js里的内容替换成如下<br><code>注意，标有*****的都是自己要改的</code></p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> <span class="variable constant_">AV</span> = <span class="built_in">require</span>(<span class="string">&#x27;leanengine&#x27;</span>)</span><br><span class="line"><span class="keyword">const</span> fs = <span class="built_in">require</span>(<span class="string">&#x27;fs&#x27;</span>)</span><br><span class="line"><span class="keyword">const</span> path = <span class="built_in">require</span>(<span class="string">&#x27;path&#x27;</span>)</span><br><span class="line"><span class="keyword">const</span> axios = <span class="built_in">require</span>(<span class="string">&#x27;axios&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> config = &#123;</span><br><span class="line">  <span class="attr">appid</span>: <span class="string">&#x27;***********&#x27;</span>, <span class="comment">//对应测试号信息里的appID</span></span><br><span class="line">  <span class="attr">secret</span>: <span class="string">&#x27;****************&#x27;</span>, <span class="comment">//对应测试号信息里的appsecret</span></span><br><span class="line">  <span class="attr">grant_type</span>: <span class="string">&#x27;client_credential&#x27;</span>, <span class="comment">//默认</span></span><br><span class="line">  <span class="attr">tousers</span>:[<span class="string">&#x27;****************&#x27;</span>,<span class="string">&#x27;****************&#x27;</span>]<span class="comment">//你要推给哪些人的touser，有几个填几个</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Loads all cloud functions under the `functions` directory.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">fs.<span class="title function_">readdirSync</span>(path.<span class="title function_">join</span>(__dirname, <span class="string">&#x27;functions&#x27;</span>)).<span class="title function_">forEach</span>(<span class="function"><span class="params">file</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">require</span>(path.<span class="title function_">join</span>(__dirname, <span class="string">&#x27;functions&#x27;</span>, file))</span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * A simple cloud function.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="variable constant_">AV</span>.<span class="property">Cloud</span>.<span class="title function_">define</span>(<span class="string">&#x27;singlepush&#x27;</span>, <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">  (<span class="keyword">function</span> <span class="title function_">getAccessToken</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> appid = config.<span class="property">appid</span>;</span><br><span class="line">    <span class="keyword">const</span> secret = config.<span class="property">secret</span>;</span><br><span class="line">    <span class="keyword">const</span> grant_type = config.<span class="property">grant_type</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">const</span> url = <span class="string">`https://api.weixin.qq.com/cgi-bin/token?grant_type=<span class="subst">$&#123;grant_type&#125;</span>&amp;appid=<span class="subst">$&#123;appid&#125;</span>&amp;secret=<span class="subst">$&#123;secret&#125;</span>`</span>;</span><br><span class="line"></span><br><span class="line">    axios.<span class="title function_">get</span>(url).<span class="title function_">then</span>(<span class="function"><span class="params">res</span> =&gt;</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (res.<span class="property">status</span> === <span class="number">200</span>) &#123;</span><br><span class="line">        <span class="title function_">getWeather</span>(res.<span class="property">data</span>.<span class="property">access_token</span>)</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="string">&#x27;获取access_token失败,请检查appid和secret&#x27;</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;).<span class="title function_">catch</span>(<span class="function"><span class="params">err</span> =&gt;</span> &#123;</span><br><span class="line">      <span class="variable language_">console</span>.<span class="title function_">log</span>(err)</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;)()</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">getWeather</span>(<span class="params">access_token</span>) &#123;</span><br><span class="line">  	<span class="comment">//刚刚和风天气的api</span></span><br><span class="line">    axios.<span class="title function_">get</span>(<span class="string">&#x27;https://devapi.qweather.com/v7/weather/3d?location=********&amp;key=***********************&#x27;</span>).<span class="title function_">then</span>(<span class="function">(<span class="params">res, res2</span>) =&gt;</span> &#123;</span><br><span class="line">      <span class="title function_">sendTemplateMsg</span>(access_token, res.<span class="property">data</span>.<span class="property">daily</span>[<span class="number">0</span>]); <span class="comment">//获取access_token成功后调用发送模板消息的方法</span></span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">sendTemplateMsg</span>(<span class="params">access_token, res</span>) &#123;</span><br><span class="line">    <span class="keyword">const</span> url = <span class="string">`https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=<span class="subst">$&#123;access_token&#125;</span>`</span>; <span class="comment">//发送模板消息的接口</span></span><br><span class="line">    <span class="keyword">const</span> requestData = &#123; <span class="comment">//发送模板消息的数据</span></span><br><span class="line">      <span class="attr">touser</span>: <span class="string">&#x27;&#x27;</span>,<span class="comment">//扫过码的人</span></span><br><span class="line">      <span class="attr">template_id</span>: <span class="string">&#x27;************&#x27;</span>,<span class="comment">//消息的模板id</span></span><br><span class="line">      <span class="attr">url</span>: <span class="string">&#x27;http://weixin.qq.com/download&#x27;</span>,</span><br><span class="line">      <span class="attr">topcolor</span>:<span class="string">&#x27;#1ce9e7&#x27;</span>,<span class="comment">//标题颜色</span></span><br><span class="line">      <span class="comment">//！！！！！！！！！！！！！！</span></span><br><span class="line">      <span class="comment">//请注意！模板上面的··.DATA对应的就是下面的值，</span></span><br><span class="line">      <span class="comment">//！！！！！！！！！！！！！！</span></span><br><span class="line">      <span class="attr">data</span>: &#123;</span><br><span class="line">        <span class="attr">city</span>: &#123;</span><br><span class="line">          <span class="attr">value</span>: <span class="string">&#x27;长沙&#x27;</span>,</span><br><span class="line">          <span class="attr">color</span>: <span class="string">&#x27;ea2eb7&#x27;</span> <span class="comment">//设置字体颜色</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">textDay</span>: &#123;<span class="comment">//晴/多云</span></span><br><span class="line">          <span class="attr">value</span>: res.<span class="property">textDay</span>,</span><br><span class="line">          <span class="attr">color</span>: <span class="string">&#x27;#91d1f4&#x27;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">tempMin</span>: &#123;<span class="comment">//最低温</span></span><br><span class="line">          <span class="attr">value</span>: res.<span class="property">tempMin</span>,</span><br><span class="line">          <span class="attr">color</span>: <span class="string">&#x27;#2ed2ea&#x27;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="attr">tempMax</span>: &#123;<span class="comment">//最高温</span></span><br><span class="line">          <span class="attr">value</span>: res.<span class="property">tempMax</span>,</span><br><span class="line">          <span class="attr">color</span>: <span class="string">&#x27;#e02d16&#x27;</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;;</span><br><span class="line">    config.<span class="property">tousers</span>.<span class="title function_">forEach</span>(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">      requestData.<span class="property">touser</span> = item</span><br><span class="line">      axios.<span class="title function_">post</span>(url, requestData).<span class="title function_">then</span>(<span class="function"><span class="params">res</span> =&gt;</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (res.<span class="property">status</span> === <span class="number">200</span>) &#123;</span><br><span class="line">          <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&#x27;模板消息推送成功&#x27;</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="keyword">throw</span> <span class="string">&#x27;模板消息推送失败&#x27;</span></span><br><span class="line">        &#125;</span><br><span class="line">      &#125;).<span class="title function_">catch</span>(<span class="function"><span class="params">err</span> =&gt;</span> &#123;</span><br><span class="line">        <span class="variable language_">console</span>.<span class="title function_">log</span>(err)</span><br><span class="line">      &#125;)</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;)</span><br><span class="line"></span><br></pre></td></tr></table></figure></li>
+<li><p>在项目根目录下终端中输入</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">npm install</span><br><span class="line">npm install axios</span><br></pre></td></tr></table></figure></li>
+<li><p>开始部署</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">lean deploy --prod</span><br></pre></td></tr></table></figure></li>
+</ol>
+<ul>
+<li><p>下面是部署成功<br><img src="https://img-blog.csdnimg.cn/2597f9b61dc443928e30ce8d8581b7e8.png" alt="在这里插入图片描述"></p>
+</li>
+<li><p>成功之后应该会有</p>
+<p><img src="https://img-blog.csdnimg.cn/8601f15e9ed74453885bf5fe0566928c.png"><br>可以点击运行看微信是否能接收得到推送，如果可以则进行下一步，不可以的话就是出问题了，可以上网搜搜解决，也可以来问我…</p>
+</li>
+</ul>
+<ol start="10">
+<li>创建定时任务，这样可以每天可以定时推送<br><img src="https://img-blog.csdnimg.cn/ddc9445cb5054b0c8ff76ff1f6eb5810.png" alt="在这里插入图片描述"><br><code>可以先弄一个和现在时间相近的测试一下，没问题就弄正式的</code></li>
+</ol>
+<p><strong>至此，大功告成</strong></p>
+]]></content>
+  </entry>
+  <entry>
+    <title>vue使用scss报错</title>
+    <url>/2022/04/06/website/</url>
+    <content><![CDATA[<p>在vue中使用scss需要安装下面三个package</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node-sass</span><br><span class="line">sass-loader</span><br><span class="line">style-loader</span><br></pre></td></tr></table></figure>
+
+<p>但直接用<strong>yarn add node-sass</strong>这条命令安装的话，最后会报很多错误。因为这个命令默认安装的是该包的最新版本，node-sass和sass-loader会出现<strong>不兼容</strong>的问题。<br>所以我们用一下命令指定安装兼容版本</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">yarn add node-sass@^4.14.1 --dev</span><br><span class="line">yarn add sass-loader@^7.3.1 --dev</span><br><span class="line">yarn add style-loader --dev</span><br></pre></td></tr></table></figure>
+
+<p>这里的- -dev表示安装为开发时依赖<br>像less sass scss 这种<strong>预处理器</strong>只有在开发的时候才能用到，将整个项目打包后(此时已不再是”开发模式”)，项目里面的样式已经变为css，用户在拿到该项目的包之后执行<strong>yarn install</strong>时，不会下载package.json里开发依赖的包，只会下载运行依赖的包，减小了负担。</p>
+<p><img src="https://img-blog.csdnimg.cn/5cd4b414a02d43aebe94a608510d2893.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA5b-F5LiN5Y-v6IO956eD,size_17,color_FFFFFF,t_70,g_se,x_16"></p>
+]]></content>
+      <categories>
+        <category>小问题</category>
+      </categories>
+      <tags>
+        <tag>Vue</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>React18实现keepalive效果 react-router-dom@6 outlet 路由页面缓存</title>
+    <url>/2022/11/13/react-keep-alive-router6/</url>
+    <content><![CDATA[<p><code>前言：React18实现keepalive效果 react-router-dom@6 outlet 路由页面缓存</code><br><code>注意是实现路由页面的缓存，其他的看官方文档自己摸索，原理都是一样的</code></p>
+<h1 id="1、版本环境"><a href="#1、版本环境" class="headerlink" title="1、版本环境"></a>1、版本环境</h1><figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="attr">&quot;react&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^18.2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;react-dom&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^18.2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;react-router-dom&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^6.4.2&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>按道理版本低一点也没有什么关系。</p>
+<h1 id="2、react-activation"><a href="#2、react-activation" class="headerlink" title="2、react-activation"></a>2、react-activation</h1><blockquote>
+<p>这是一个npm包，在react keep alive中用的人数应该是最多的包.<br>这是GitHub地址<a href="https://github.com/CJY0208/react-activation/blob/master/README_CN.md">react-activation</a></p>
+</blockquote>
+<h2 id="2-1安装"><a href="#2-1安装" class="headerlink" title="2.1安装"></a>2.1安装</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">yarn add react-activation</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或者</span></span><br><span class="line">npm install react-activation</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-2-关闭严格模式"><a href="#2-2-关闭严格模式" class="headerlink" title="2.2.关闭严格模式"></a>2.2.关闭严格模式</h2><p>在main.tsx里把&lt;React.StrictMode&gt;&lt;/React.StrictMode&gt;这个标签删掉。</p>
+<h2 id="2-3-AliveScope使用"><a href="#2-3-AliveScope使用" class="headerlink" title="2.3.AliveScope使用"></a>2.3.AliveScope使用</h2><p>一般把AliveScope放在App外层，但是要在Router内层。<br><img src="https://img-blog.csdnimg.cn/3aad69be6ebd43d7970a9da8bd4f5700.png" alt="在这里插入图片描述"></p>
+<h2 id="2-4-KeepAlive使用"><a href="#2-4-KeepAlive使用" class="headerlink" title="2.4.KeepAlive使用"></a>2.4.KeepAlive使用</h2><p>在路由表里</p>
+<figure class="highlight typescript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="title class_">Login</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Login&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Main</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Query</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main/Query&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Index</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main/Index/index&quot;</span>;</span><br><span class="line"><span class="comment">//如果懒加载的话第一次点击不能渲染出组件,要缓存的路由不能懒加载！！</span></span><br><span class="line"><span class="comment">// const Query = lazy(() =&gt; import(&quot;../pages/Main/Query&quot;))</span></span><br><span class="line"><span class="keyword">import</span> <span class="title class_">KeepAlive</span> <span class="keyword">from</span> <span class="string">&#x27;react-activation&#x27;</span></span><br><span class="line"><span class="keyword">const</span> <span class="attr">routes</span>: <span class="title class_">RouteObject</span>[] = [</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">path</span>: <span class="string">&#x27;/main&#x27;</span>,</span><br><span class="line">        <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">Main</span> /&gt;</span></span>,</span><br><span class="line">        <span class="attr">children</span>: [</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">path</span>: <span class="string">&quot;index&quot;</span>,</span><br><span class="line">                <span class="comment">//KeepAlive一定一定要加id！！！</span></span><br><span class="line">                <span class="attr">element</span>:<span class="language-xml"><span class="tag">&lt;<span class="name">KeepAlive</span> <span class="attr">id</span>=<span class="string">&quot;index&quot;</span> &gt;</span><span class="tag">&lt;<span class="name">Index</span> /&gt;</span><span class="tag">&lt;/<span class="name">KeepAlive</span>&gt;</span></span></span><br><span class="line">            &#125;,</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">path</span>: <span class="string">&quot;query&quot;</span>,</span><br><span class="line">                <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">KeepAlive</span> <span class="attr">id</span>=<span class="string">&quot;query&quot;</span>&gt;</span><span class="tag">&lt;<span class="name">Query</span> /&gt;</span><span class="tag">&lt;/<span class="name">KeepAlive</span>&gt;</span></span></span><br><span class="line">            &#125;,</span><br><span class="line">        ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">path</span>: <span class="string">&#x27;/login&#x27;</span>,</span><br><span class="line">        <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">Login</span> /&gt;</span></span></span><br><span class="line">    &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<p><code>KeepAlive标签一定一定要加id！！！</code><br><code>要缓存的路由不能懒加载！！!</code></p>
+<h2 id="2-5-Outlet放置"><a href="#2-5-Outlet放置" class="headerlink" title="2.5.Outlet放置"></a>2.5.Outlet放置</h2><p>正常放就行，该放哪就放哪。我这个就是放在Main组件里，因为我的&lt;Index /&gt;和&lt;Query /&gt;两个子路由都是属于&lt;Main /&gt;的。<br><img src="https://img-blog.csdnimg.cn/a19076c43bde4829bf05f26ac8e2fc18.png" alt="在这里插入图片描述"></p>
+<h1 id="3、结束"><a href="#3、结束" class="headerlink" title="3、结束"></a>3、结束</h1>]]></content>
+      <tags>
+        <tag>React</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>解决百度文库等各种文库不能复制的问题</title>
+    <url>/2022/04/19/wenku/</url>
+    <content><![CDATA[<h2 id="1-进入网页按下-F12-按钮进入开发者模式"><a href="#1-进入网页按下-F12-按钮进入开发者模式" class="headerlink" title="1.进入网页按下 F12 按钮进入开发者模式"></a>1.进入网页按下 F12 按钮进入开发者模式</h2><h2 id="2-点击如图设置按钮"><a href="#2-点击如图设置按钮" class="headerlink" title="2.点击如图设置按钮"></a>2.点击如图设置按钮</h2><p><img src="http://img.cwiyc.top/wenku1.png" alt="1"></p>
+<h2 id="3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"><a href="#3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。" class="headerlink" title="3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"></a>3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。</h2><p><img src="http://img.cwiyc.top/wenku2.png" alt="2"></p>
+<h2 id="4-这时你就可以尽情复制该页面内容了"><a href="#4-这时你就可以尽情复制该页面内容了" class="headerlink" title="4.这时你就可以尽情复制该页面内容了"></a>4.这时你就可以尽情复制该页面内容了</h2><p>以上是chrome浏览器的样式，像edge等浏览器都大同小异，赶紧去教你的室友吧！！！<br>别忘了点个赞 <strong>heihei~</strong></p>
+]]></content>
+      <categories>
+        <category>小窍门</category>
+      </categories>
+  </entry>
+</search>

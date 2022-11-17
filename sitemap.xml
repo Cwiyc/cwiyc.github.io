@@ -2,6 +2,15 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://cwiyc.top/2022/11/17/docker-1/</loc>
+    
+    <lastmod>2022-11-17</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://cwiyc.top/2022/05/15/nginx-2/</loc>
     
     <lastmod>2022-11-16</lastmod>
@@ -164,6 +173,13 @@
 
   
   <url>
+    <loc>https://cwiyc.top/tags/docker/</loc>
+    <lastmod>2022-11-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
     <loc>https://cwiyc.top/tags/es6/</loc>
     <lastmod>2022-11-17</lastmod>
     <changefreq>weekly</changefreq>
@@ -171,14 +187,14 @@
   </url>
   
   <url>
-    <loc>https://cwiyc.top/tags/Vue/</loc>
+    <loc>https://cwiyc.top/tags/CSS/</loc>
     <lastmod>2022-11-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://cwiyc.top/tags/CSS/</loc>
+    <loc>https://cwiyc.top/tags/Vue/</loc>
     <lastmod>2022-11-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -201,14 +217,14 @@
   </url>
   
   <url>
-    <loc>https://cwiyc.top/categories/%E9%83%A8%E7%BD%B2/</loc>
+    <loc>https://cwiyc.top/categories/html-css/</loc>
     <lastmod>2022-11-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
   </url>
   
   <url>
-    <loc>https://cwiyc.top/categories/html-css/</loc>
+    <loc>https://cwiyc.top/categories/%E9%83%A8%E7%BD%B2/</loc>
     <lastmod>2022-11-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>

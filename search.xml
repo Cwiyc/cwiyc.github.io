@@ -1,57 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>docker 部署 vue+springboot前端+后端 整合在一个镜像中</title>
-    <url>/2022/11/17/docker-1/</url>
-    <content><![CDATA[<blockquote>
-<p>如果你自己独立开发了一套前后端分离的项目，想要把它放在一个docker镜像中，一键部署，真正做到开箱即用。</p>
-</blockquote>
-<h1 id="1、什么是docker"><a href="#1、什么是docker" class="headerlink" title="1、什么是docker"></a>1、什么是docker</h1><p>build once, run everywhere</p>
-<h1 id="2、打包前后端文件"><a href="#2、打包前后端文件" class="headerlink" title="2、打包前后端文件"></a>2、打包前后端文件</h1><h2 id="2-1、打包前端文件"><a href="#2-1、打包前端文件" class="headerlink" title="2.1、打包前端文件"></a>2.1、打包前端文件</h2><p>1.在项目下执行<br><code>注意！打包之前你的api不要设置成localhost或者127.0.0.1，而是要换成你等下要部署的服务器的ip地址</code></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">npm run build</span><br><span class="line">//or</span><br><span class="line">yarn build</span><br></pre></td></tr></table></figure>
-
-<p>2.会生成一个dist文件夹，里面就是你前端所有的代码，等会挂载到nginx服务上<br><img src="https://img-blog.csdnimg.cn/1daafd56719540eba00277145e0bb40e.png" alt="在这里插入图片描述"></p>
-<h2 id="2-2、打包后端文件"><a href="#2-2、打包后端文件" class="headerlink" title="2.2、打包后端文件"></a>2.2、打包后端文件</h2><p>1.pom.xml里指定打包方式为jar包</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;project&gt;</span><br><span class="line">	//意为在project下加入下面这个标签</span><br><span class="line">	&lt;packaging&gt;jar&lt;/packaging&gt;</span><br><span class="line">&lt;/project&gt;</span><br></pre></td></tr></table></figure>
-
-<p>2.打包<br><img src="https://img-blog.csdnimg.cn/e42f8192964d4fdbbb4b2eb1c52dea2f.png" alt="在这里插入图片描述"><br>3.打包之后应该会在target下面生成jar包<br><img src="https://img-blog.csdnimg.cn/4baddf8810e34508913232933f097266.png" alt="在这里插入图片描述"></p>
-<h1 id="3、制作docker镜像"><a href="#3、制作docker镜像" class="headerlink" title="3、制作docker镜像"></a>3、制作docker镜像</h1><p><code>注意：windows环境下也可以制作镜像，思路都是一样的</code><br>1.centos7下安装docker</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装依赖（以下是一整条命令）</span></span><br><span class="line">yum install -y yum-utils \</span><br><span class="line">  device-mapper-persistent-data \</span><br><span class="line">  lvm2</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">设置仓库（以下是一整条命令）</span></span><br><span class="line">yum-config-manager \</span><br><span class="line">    --add-repo \</span><br><span class="line">    https://download.docker.com/linux/centos/docker-ce.repo</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装docker</span></span><br><span class="line">yum install docker-ce docker-ce-cli containerd.io</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动并加入开机启动</span></span><br><span class="line">systemctl start docker</span><br><span class="line">systemctl enable docker</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">验证是否安装成功</span></span><br><span class="line">docker version</span><br></pre></td></tr></table></figure>
-
-<p>2.创建一个文件夹作为你制作镜像的根目录，然后把前后端打包的文件都传进去，可以用filezilla什么的，<br><img src="https://img-blog.csdnimg.cn/3a2a4ba2493e41f5a86552ee7bb58878.png" alt="在这里插入图片描述"><br>3.在该目录下创建Dockerfile配置文件，至关重要</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">touch Dockerfile</span><br></pre></td></tr></table></figure>
-
-<p>4.编辑Dockerfile</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Docker image <span class="keyword">for</span> springboot file run</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">VERSION 0.0.1</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Author: cwiyc</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">基础镜像</span></span><br><span class="line">FROM centos:8</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">维护人信息</span></span><br><span class="line">MAINTAINER cwiyc &lt;cwiyc922@gmail.com&gt;</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">VOLUME 指定了临时文件目录为/tmp。</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">其效果是在主机 /var/lib/docker 目录下创建了一个临时文件，并链接到容器的/tmp</span></span><br><span class="line">VOLUME /tmp</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Centos8于2021年年底停止了服务，所以我们更新yum源为阿里镜像</span></span><br><span class="line">RUN cd /etc/yum.repos.d/</span><br><span class="line">RUN sed -i &#x27;s/mirrorlist/#mirrorlist/g&#x27; /etc/yum.repos.d/CentOS-*</span><br><span class="line">RUN sed -i &#x27;s|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g&#x27; /etc/yum.repos.d/CentOS-*</span><br><span class="line">RUN yum -y install wget</span><br><span class="line">RUN wget -O /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo</span><br><span class="line">RUN yum clean all</span><br><span class="line">RUN yum makecache</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装java</span></span><br><span class="line">RUN yum -y install java</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装epel源</span></span><br><span class="line">RUN yum -y install epel-release</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装nginx</span></span><br><span class="line">RUN yum -y install nginx</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将jar包添加到容器中并更名为app.jar</span></span><br><span class="line">ADD orderonlineback-0.0.1-SNAPSHOT.jar app.jar</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">把自己本地的html里放的前端项目，放入nginx默认的资源目录里</span></span><br><span class="line">COPY dist /usr/share/nginx/html</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">暴露80端口</span></span><br><span class="line">EXPOSE 80</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">运行jar包，ENTRYPOINT这条命令只能出现一次，如有多条，则只执行最后一条。该命令只有容器启动时才执行</span></span><br><span class="line">ENTRYPOINT [&quot;java&quot;,&quot;-Djava.security.egd=file:/dev/./urandom&quot;,&quot;-jar&quot;,&quot;/app.jar&quot;]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p>5.制作镜像</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">// 注意最后的.</span><br><span class="line">docker build -t 取个镜像名 .</span><br><span class="line">//查看镜像，会出现你刚刚制作的镜像</span><br><span class="line">docker images</span><br></pre></td></tr></table></figure>
-
-<p><img src="https://img-blog.csdnimg.cn/7076fd757e904f6c9900bc6bc89d8a98.png" alt="在这里插入图片描述"></p>
-<h1 id="4、新建一个容器运行镜像"><a href="#4、新建一个容器运行镜像" class="headerlink" title="4、新建一个容器运行镜像"></a>4、新建一个容器运行镜像</h1><p><code>提示：每一个镜像都需要运行在一个容器里</code><br>1.运行容器</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-d: 后台运行容器，并返回容器ID；</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-i: 以交互模式运行容器，通常与 -t 同时使用；</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-t: 为容器重新分配一个伪输入终端，通常与 -i 同时使用；</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--net=<span class="string">&quot;bridge&quot;</span>: 指定容器的网络连接类型，支持 bridge/host/none/container: 四种类型；</span></span><br><span class="line">docker run -itd  --name 取个容器名 --net=host 刚刚的镜像名</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">例如 docker run -itd  --name bi43 --net=host backimage41</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看正在运行的容器</span></span><br><span class="line">docker ps</span><br></pre></td></tr></table></figure>
-
-<p><img src="https://img-blog.csdnimg.cn/5766649910a54888b6b8c656f66ec372.png" alt="在这里插入图片描述"><br>这时后端springboot项目已经运行了，我的是运行在9090<br>查看端口情况</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">netstat -ntlp</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">如果没有这个命令，请安装</span></span><br><span class="line">yum -y install net-tools</span><br></pre></td></tr></table></figure>
-
-<p><img src="https://img-blog.csdnimg.cn/0c8fa04d492d4931bedc2c83d762686e.png" alt="在这里插入图片描述"><br>2.运行nginx</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker exec -it 刚刚的容器名 nginx</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">例如 docker <span class="built_in">exec</span> -it bi43 nginx</span></span><br></pre></td></tr></table></figure>
-
-<p>这时nginx也启动起来了，80端口<br><img src="https://img-blog.csdnimg.cn/9580532fa4a44844b59bb4f2bf401b5d.png" alt="在这里插入图片描述"></p>
-<h1 id="5、保存制作好的镜像"><a href="#5、保存制作好的镜像" class="headerlink" title="5、保存制作好的镜像"></a>5、保存制作好的镜像</h1><p>1.保存镜像的改动</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker commit 刚刚的容器名 取一个新的镜像名</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">例如 docker commit bi43 bir1</span></span><br></pre></td></tr></table></figure>
-
-<p>此时生成了一个新的镜像，这就是你制作好的镜像。<br><img src="https://img-blog.csdnimg.cn/1839611ee9254c1b893f703d03a83637.png" alt="在这里插入图片描述"><br>2.阿里托管你的镜像<br><a href="https://blog.csdn.net/nuptaxin/article/details/124008353">请看这个</a>，push过程稍有些漫长</p>
-<h1 id="6、mysql"><a href="#6、mysql" class="headerlink" title="6、mysql"></a>6、mysql</h1><p>至于mysql，centos7上mysql要付费了，所以要用的mariadb，在数据的备份和还原上与mysql无痛交流<br><img src="https://img-blog.csdnimg.cn/0be7a28ba21744b1b8f107c6baf10aac.png" alt="在这里插入图片描述"></p>
-]]></content>
-      <categories>
-        <category>技术</category>
-      </categories>
-      <tags>
-        <tag>docker</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>es6尾调用</title>
     <url>/2022/09/25/es6%E5%B0%BE%E8%B0%83%E7%94%A8/</url>
     <content><![CDATA[<h3 id="1-尾调用优化"><a href="#1-尾调用优化" class="headerlink" title="1.尾调用优化"></a>1.尾调用优化</h3><blockquote>
@@ -115,6 +64,60 @@
 ]]></content>
   </entry>
   <entry>
+    <title>docker 部署 vue+springboot前端+后端 整合在一个镜像中</title>
+    <url>/2022/11/17/docker-1/</url>
+    <content><![CDATA[<blockquote>
+<p>如果你自己独立开发了一套前后端分离的项目，想要把它放在一个docker镜像中，一键部署，真正做到开箱即用。</p>
+</blockquote>
+<h1 id="1、什么是docker"><a href="#1、什么是docker" class="headerlink" title="1、什么是docker"></a>1、什么是docker</h1><p>build once, run everywhere</p>
+<h1 id="2、打包前后端文件"><a href="#2、打包前后端文件" class="headerlink" title="2、打包前后端文件"></a>2、打包前后端文件</h1><h2 id="2-1、打包前端文件"><a href="#2-1、打包前端文件" class="headerlink" title="2.1、打包前端文件"></a>2.1、打包前端文件</h2><p>1.在项目下执行<br><code>注意！打包之前你的api不要设置成localhost或者127.0.0.1，而是要换成你等下要部署的服务器的ip地址</code></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">npm run build</span><br><span class="line">//or</span><br><span class="line">yarn build</span><br></pre></td></tr></table></figure>
+
+<p>2.会生成一个dist文件夹，里面就是你前端所有的代码，等会挂载到nginx服务上<br><img src="https://img-blog.csdnimg.cn/1daafd56719540eba00277145e0bb40e.png" alt="在这里插入图片描述"></p>
+<h2 id="2-2、打包后端文件"><a href="#2-2、打包后端文件" class="headerlink" title="2.2、打包后端文件"></a>2.2、打包后端文件</h2><p>1.pom.xml里指定打包方式为jar包</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">&lt;project&gt;</span><br><span class="line">	//意为在project下加入下面这个标签</span><br><span class="line">	&lt;packaging&gt;jar&lt;/packaging&gt;</span><br><span class="line">&lt;/project&gt;</span><br></pre></td></tr></table></figure>
+
+<p>2.打包<br><img src="https://img-blog.csdnimg.cn/e42f8192964d4fdbbb4b2eb1c52dea2f.png" alt="在这里插入图片描述"><br>3.打包之后应该会在target下面生成jar包<br><img src="https://img-blog.csdnimg.cn/4baddf8810e34508913232933f097266.png" alt="在这里插入图片描述"></p>
+<h1 id="3、制作docker镜像"><a href="#3、制作docker镜像" class="headerlink" title="3、制作docker镜像"></a>3、制作docker镜像</h1><p><code>注意：windows环境下也可以制作镜像，思路都是一样的</code><br>1.centos7下安装docker</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装依赖（以下是一整条命令）</span></span><br><span class="line">yum install -y yum-utils \</span><br><span class="line">  device-mapper-persistent-data \</span><br><span class="line">  lvm2</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">设置仓库（以下是一整条命令）</span></span><br><span class="line">yum-config-manager \</span><br><span class="line">    --add-repo \</span><br><span class="line">    https://download.docker.com/linux/centos/docker-ce.repo</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装docker</span></span><br><span class="line">yum install docker-ce docker-ce-cli containerd.io</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">启动并加入开机启动</span></span><br><span class="line">systemctl start docker</span><br><span class="line">systemctl enable docker</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">验证是否安装成功</span></span><br><span class="line">docker version</span><br></pre></td></tr></table></figure>
+
+<p>2.创建一个文件夹作为你制作镜像的根目录，然后把前后端打包的文件都传进去，可以用filezilla什么的，<br><img src="https://img-blog.csdnimg.cn/9690501a95854b0eb22db5f074e31dda.png" alt="在这里插入图片描述"><br>3.在该目录下创建Dockerfile配置文件，至关重要</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">touch Dockerfile</span><br></pre></td></tr></table></figure>
+
+<p>4.编辑Dockerfile</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Docker image <span class="keyword">for</span> springboot file run</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">VERSION 0.0.1</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Author: cwiyc</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">基础镜像</span></span><br><span class="line">FROM centos:8</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">维护人信息</span></span><br><span class="line">MAINTAINER cwiyc &lt;cwiyc922@gmail.com&gt;</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">VOLUME 指定了临时文件目录为/tmp。</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">其效果是在主机 /var/lib/docker 目录下创建了一个临时文件，并链接到容器的/tmp</span></span><br><span class="line">VOLUME /tmp</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Centos8于2021年年底停止了服务，所以我们更新yum源为阿里镜像</span></span><br><span class="line">RUN cd /etc/yum.repos.d/</span><br><span class="line">RUN sed -i &#x27;s/mirrorlist/#mirrorlist/g&#x27; /etc/yum.repos.d/CentOS-*</span><br><span class="line">RUN sed -i &#x27;s|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g&#x27; /etc/yum.repos.d/CentOS-*</span><br><span class="line">RUN yum -y install wget</span><br><span class="line">RUN wget -O /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo</span><br><span class="line">RUN yum clean all</span><br><span class="line">RUN yum makecache</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装java</span></span><br><span class="line">RUN yum -y install java</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装epel源</span></span><br><span class="line">RUN yum -y install epel-release</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">安装nginx</span></span><br><span class="line">RUN yum -y install nginx</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将jar包添加到容器中并更名为app.jar</span></span><br><span class="line">ADD orderonlineback-0.0.1-SNAPSHOT.jar app.jar</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">把自己本地的html里放的前端项目，放入nginx默认的资源目录里</span></span><br><span class="line">COPY dist /usr/share/nginx/html</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">将自己的nginx.conf 配置文件放到docker里nginx默认的配置文件位置</span></span><br><span class="line">COPY nginx.conf /etc/nginx/nginx.conf</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">暴露80端口</span></span><br><span class="line">EXPOSE 80</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">运行jar包，ENTRYPOINT这条命令只能出现一次，如有多条，则只执行最后一条。该命令只有容器启动时才执行</span></span><br><span class="line">ENTRYPOINT [&quot;java&quot;,&quot;-Djava.security.egd=file:/dev/./urandom&quot;,&quot;-jar&quot;,&quot;/app.jar&quot;]</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>5.在该目录下创建nginx配置文件nginx.conf，这样你可以更灵活的配置nginx。<br><code>location那个地方的try_files $uri $uri/ /index.html一定要写，默认是没有的，不写的话你刷新页面会404</code></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">touch nginx.conf</span><br></pre></td></tr></table></figure>
+<figure class="highlight txt"><table><tr><td class="code"><pre><span class="line">user nginx;</span><br><span class="line">worker_processes auto;</span><br><span class="line">error_log /var/log/nginx/error.log;</span><br><span class="line">pid /run/nginx.pid;</span><br><span class="line"></span><br><span class="line"># Load dynamic modules. See /usr/share/doc/nginx/README.dynamic.</span><br><span class="line">include /usr/share/nginx/modules/*.conf;</span><br><span class="line"></span><br><span class="line">events &#123;</span><br><span class="line">    worker_connections 1024;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">http &#123;</span><br><span class="line">    log_format  main  &#x27;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &#x27;</span><br><span class="line">                      &#x27;$status $body_bytes_sent &quot;$http_referer&quot; &#x27;</span><br><span class="line">                      &#x27;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#x27;;</span><br><span class="line"></span><br><span class="line">    access_log  /var/log/nginx/access.log  main;</span><br><span class="line"></span><br><span class="line">    sendfile            on;</span><br><span class="line">    tcp_nopush          on;</span><br><span class="line">    tcp_nodelay         on;</span><br><span class="line">    keepalive_timeout   65;</span><br><span class="line">    types_hash_max_size 2048;</span><br><span class="line"></span><br><span class="line">    include             /etc/nginx/mime.types;</span><br><span class="line">    default_type        application/octet-stream;</span><br><span class="line"></span><br><span class="line">    # Load modular configuration files from the /etc/nginx/conf.d directory.</span><br><span class="line">    # See http://nginx.org/en/docs/ngx_core_module.html#include</span><br><span class="line">    # for more information.</span><br><span class="line">    include /etc/nginx/conf.d/*.conf;</span><br><span class="line"></span><br><span class="line">    server &#123;</span><br><span class="line">        listen       80 default_server;</span><br><span class="line">        listen       [::]:80 default_server;</span><br><span class="line">        server_name  _;</span><br><span class="line">        root         /usr/share/nginx/html;</span><br><span class="line"></span><br><span class="line">        # Load configuration files for the default server block.</span><br><span class="line">        include /etc/nginx/default.d/*.conf;</span><br><span class="line">        </span><br><span class="line">        location / &#123;</span><br><span class="line">                try_files $uri $uri/ /index.html;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        error_page 404 /404.html;</span><br><span class="line">            location = /40x.html &#123;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        error_page 500 502 503 504 /50x.html;</span><br><span class="line">            location = /50x.html &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>6.制作镜像</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">// 注意最后的.</span><br><span class="line">docker build -t 取个镜像名 .</span><br><span class="line">//查看镜像，会出现你刚刚制作的镜像</span><br><span class="line">docker images</span><br></pre></td></tr></table></figure>
+<p><img src="https://img-blog.csdnimg.cn/1839611ee9254c1b893f703d03a83637.png" alt="在这里插入图片描述"></p>
+<h1 id="4、新建一个容器运行镜像"><a href="#4、新建一个容器运行镜像" class="headerlink" title="4、新建一个容器运行镜像"></a>4、新建一个容器运行镜像</h1><p><code>提示：每一个镜像都需要运行在一个容器里</code><br>1.运行容器</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-d: 后台运行容器，并返回容器ID；</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-i: 以交互模式运行容器，通常与 -t 同时使用；</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">-t: 为容器重新分配一个伪输入终端，通常与 -i 同时使用；</span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">--net=<span class="string">&quot;bridge&quot;</span>: 指定容器的网络连接类型，支持 bridge/host/none/container: 四种类型；</span></span><br><span class="line">docker run -itd  --name 取个容器名 --net=host 刚刚的镜像名</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">例如 docker run -itd  --name bi43 --net=host backimage41</span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">查看正在运行的容器</span></span><br><span class="line">docker ps</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://img-blog.csdnimg.cn/5766649910a54888b6b8c656f66ec372.png" alt="在这里插入图片描述"><br>这时后端springboot项目已经运行了，我的是运行在9090<br>查看端口情况</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">netstat -ntlp</span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">如果没有这个命令，请安装</span></span><br><span class="line">yum -y install net-tools</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://img-blog.csdnimg.cn/0c8fa04d492d4931bedc2c83d762686e.png" alt="在这里插入图片描述"><br>2.运行nginx</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker exec -it 刚刚的容器名 nginx</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">例如 docker <span class="built_in">exec</span> -it bi43 nginx</span></span><br></pre></td></tr></table></figure>
+
+<p>这时nginx也启动起来了，80端口<br><img src="https://img-blog.csdnimg.cn/9580532fa4a44844b59bb4f2bf401b5d.png" alt="在这里插入图片描述"></p>
+<h1 id="5、保存制作好的镜像"><a href="#5、保存制作好的镜像" class="headerlink" title="5、保存制作好的镜像"></a>5、保存制作好的镜像</h1><p>1.保存镜像的改动</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">docker commit 刚刚的容器名 取一个新的镜像名</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">例如 docker commit bi43 bir1</span></span><br></pre></td></tr></table></figure>
+
+<p>此时生成了一个新的镜像，这就是你制作好的镜像。<br><img src="https://img-blog.csdnimg.cn/1839611ee9254c1b893f703d03a83637.png" alt="在这里插入图片描述"><br>2.阿里托管你的镜像<br><a href="https://blog.csdn.net/nuptaxin/article/details/124008353">请看这个</a>，push过程稍有些漫长</p>
+<p>3.这时候你本地和远程仓库都有你的刚刚制作的镜像了，现在你只需要运行镜像即可(docker exec -it bi43 nginx这条命令还是需要执行来开启nginx)</p>
+<h1 id="6、mysql"><a href="#6、mysql" class="headerlink" title="6、mysql"></a>6、mysql</h1><p>至于mysql，centos7上mysql要付费了，所以要用的mariadb，它在数据的备份和还原上与mysql无痛交流<br><img src="https://img-blog.csdnimg.cn/0be7a28ba21744b1b8f107c6baf10aac.png" alt="在这里插入图片描述"></p>
+]]></content>
+      <categories>
+        <category>技术</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>3D旋转木马 HTML+css</title>
     <url>/2022/04/07/mua/</url>
     <content><![CDATA[<p><img src="https://img-blog.csdnimg.cn/2021031120140990.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L1dDdmlzb24=,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
@@ -126,6 +129,73 @@
       </categories>
       <tags>
         <tag>CSS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>服务器部署vue的另一种姿势</title>
+    <url>/2022/05/15/nginx-2/</url>
+    <content><![CDATA[<h1 id="服务器部署vue的另一种姿势"><a href="#服务器部署vue的另一种姿势" class="headerlink" title="服务器部署vue的另一种姿势"></a>服务器部署vue的另一种姿势</h1><blockquote>
+<p>上一篇文章我已经讲到了用yarn build或npm run build 的方法将vue项目编译打包生成静态文件dist的方法</p>
+<p>这次我们讲一下如何使用yarn serve或npm run serve的方法将本地正在运行的项目暴露给外网访问</p>
+</blockquote>
+<h2 id="1-安装nginx"><a href="#1-安装nginx" class="headerlink" title="1.安装nginx"></a>1.安装nginx</h2><blockquote>
+<p>nginx 安装配置nginx的方法我上一篇<a href="https://cwiyc.top/2022/05/14/nginx-1/">文章</a>有（已安装请忽略）</p>
+</blockquote>
+<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
+<p><img src="http://img.cwiyc.top/nginx-21.png" alt="image-20220515100153894"></p>
+<h2 id="2-安装npm和node"><a href="#2-安装npm和node" class="headerlink" title="2.安装npm和node"></a>2.安装npm和node</h2><h3 id="2-1-添加NodeSource-yum仓库"><a href="#2-1-添加NodeSource-yum仓库" class="headerlink" title="2.1.添加NodeSource yum仓库"></a>2.1.添加NodeSource yum仓库</h3><p>运行以下<a href="https://linuxize.com/post/curl-command-examples/"><code>curl</code>命令</a> 将 NodeSource yum 存储库添加到您的系统</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-安装-Node-js-和-npm"><a href="#2-2-安装-Node-js-和-npm" class="headerlink" title="2.2. 安装 Node.js 和 npm"></a>2.2. 安装 Node.js 和 npm</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo yum install nodejs</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-验证-Node-js-和-npm-安装"><a href="#2-3-验证-Node-js-和-npm-安装" class="headerlink" title="2.3. 验证 Node.js 和 npm 安装"></a>2.3. 验证 Node.js 和 npm 安装</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node -v</span><br><span class="line">npm -v</span><br></pre></td></tr></table></figure>
+
+<p>出现版本号则安装成功</p>
+<h3 id="2-4配置npm清华镜像"><a href="#2-4配置npm清华镜像" class="headerlink" title="2.4配置npm清华镜像"></a>2.4配置npm清华镜像</h3><blockquote>
+<p>如果不配置的话npm install会很慢</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#持久配置</span><br><span class="line">npm config set registry http://npm.tuna.tsinghua.edu.cn/registry</span><br><span class="line">#检查配置是否成功</span><br><span class="line">npm config get registry</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="3-将vue项目传输到服务器"><a href="#3-将vue项目传输到服务器" class="headerlink" title="3.将vue项目传输到服务器"></a>3.将vue项目传输到服务器</h2><blockquote>
+<p>通过filezilla传输或者其他的自行选择</p>
+<p>node_modules不要上传，因为服务器和你自己本地的npm环境是不一样的，上传了运行时也会报错，到时候还得老老实实删掉重新npm install.</p>
+</blockquote>
+<p>把项目放在服务器你想放的位置</p>
+<p>然后先npm install，再npm run serve</p>
+<p><img src="http://img.cwiyc.top/nginx-22.png" alt="image-20220515102415064"></p>
+<h2 id="4-配置nginx"><a href="#4-配置nginx" class="headerlink" title="4.配置nginx"></a>4.配置nginx</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#用vim编辑你的nginx.conf</span><br><span class="line">#如果你是按我上一篇文章安装的nginx，那么就是如下命令</span><br><span class="line">vim /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
+
+<p><img src="http://img.cwiyc.top/nginx-23.png" alt="image-20220515104601494"></p>
+<p>上面这样配置的意思是用nginx 80端口服务来代理你的localhost:8080端口服务</p>
+<p>这时你可以在服务器上的浏览器访问localhost:80访问你的vue项目了</p>
+<h2 id="5-防火墙"><a href="#5-防火墙" class="headerlink" title="5.防火墙"></a>5.<del>防火墙</del></h2><p><code>！！！如果在服务器上不需要这一步！，安全组放通端口即可。虚拟机上则需要这一步。！！！</code></p>
+<p><strong>！！！但是这样在外网是访问不了的，由于服务器防火墙的问题</strong></p>
+<p>CentOS7默认使用的是firewall作为防火墙，这里改为iptables防火墙</p>
+<h3 id="5-1-关闭firewalld"><a href="#5-1-关闭firewalld" class="headerlink" title="5.1.关闭firewalld"></a>5.1.关闭firewalld</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld  </span><br><span class="line">systemctl mask firewalld</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-使用iptables服务"><a href="#5-2-使用iptables服务" class="headerlink" title="5.2.使用iptables服务"></a>5.2.使用iptables服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、安装iptables防火墙</span><br><span class="line">yum install iptables-services #安装</span><br><span class="line"></span><br><span class="line">2、修改文件配置允许80端口</span><br><span class="line">vim /etc/sysconfig/iptables #编辑防火墙配置文件</span><br><span class="line">按i进入文本编辑 在原文档中找到</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT</span><br><span class="line">在该行下面添加</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</span><br><span class="line">:wq! #保存退出</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#开放443端口(HTTPS)</span><br><span class="line">iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"> </span><br><span class="line">#保存上述规则</span><br><span class="line">service iptables save</span><br><span class="line"> </span><br><span class="line">#开启服务</span><br><span class="line">systemctl restart iptables.service</span><br><span class="line"></span><br><span class="line">#设置防火墙开机启动</span><br><span class="line">systemctl enable iptables.service </span><br></pre></td></tr></table></figure>
+
+<p>防火墙参考整合了一下两篇文章</p>
+<p><a href="https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434">https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434</a></p>
+<p><a href="https://blog.csdn.net/sinat_29821865/article/details/80982250">https://blog.csdn.net/sinat_29821865/article/details/80982250</a></p>
+<h3 id="5-3-重启nginx服务器"><a href="#5-3-重启nginx服务器" class="headerlink" title="5.3.重启nginx服务器"></a>5.3.重启nginx服务器</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h1 id="现在你可以在外网输入服务器ip地址访问你的项目了"><a href="#现在你可以在外网输入服务器ip地址访问你的项目了" class="headerlink" title="现在你可以在外网输入服务器ip地址访问你的项目了"></a>现在你可以在外网输入服务器ip地址访问你的项目了</h1>]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>Vue</tag>
       </tags>
   </entry>
   <entry>
@@ -228,73 +298,6 @@
       </tags>
   </entry>
   <entry>
-    <title>服务器部署vue的另一种姿势</title>
-    <url>/2022/05/15/nginx-2/</url>
-    <content><![CDATA[<h1 id="服务器部署vue的另一种姿势"><a href="#服务器部署vue的另一种姿势" class="headerlink" title="服务器部署vue的另一种姿势"></a>服务器部署vue的另一种姿势</h1><blockquote>
-<p>上一篇文章我已经讲到了用yarn build或npm run build 的方法将vue项目编译打包生成静态文件dist的方法</p>
-<p>这次我们讲一下如何使用yarn serve或npm run serve的方法将本地正在运行的项目暴露给外网访问</p>
-</blockquote>
-<h2 id="1-安装nginx"><a href="#1-安装nginx" class="headerlink" title="1.安装nginx"></a>1.安装nginx</h2><blockquote>
-<p>nginx 安装配置nginx的方法我上一篇<a href="https://cwiyc.top/2022/05/14/nginx-1/">文章</a>有（已安装请忽略）</p>
-</blockquote>
-<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
-<p><img src="http://img.cwiyc.top/nginx-21.png" alt="image-20220515100153894"></p>
-<h2 id="2-安装npm和node"><a href="#2-安装npm和node" class="headerlink" title="2.安装npm和node"></a>2.安装npm和node</h2><h3 id="2-1-添加NodeSource-yum仓库"><a href="#2-1-添加NodeSource-yum仓库" class="headerlink" title="2.1.添加NodeSource yum仓库"></a>2.1.添加NodeSource yum仓库</h3><p>运行以下<a href="https://linuxize.com/post/curl-command-examples/"><code>curl</code>命令</a> 将 NodeSource yum 存储库添加到您的系统</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -</span><br></pre></td></tr></table></figure>
-
-<h3 id="2-2-安装-Node-js-和-npm"><a href="#2-2-安装-Node-js-和-npm" class="headerlink" title="2.2. 安装 Node.js 和 npm"></a>2.2. 安装 Node.js 和 npm</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo yum install nodejs</span><br></pre></td></tr></table></figure>
-
-<h3 id="2-3-验证-Node-js-和-npm-安装"><a href="#2-3-验证-Node-js-和-npm-安装" class="headerlink" title="2.3. 验证 Node.js 和 npm 安装"></a>2.3. 验证 Node.js 和 npm 安装</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node -v</span><br><span class="line">npm -v</span><br></pre></td></tr></table></figure>
-
-<p>出现版本号则安装成功</p>
-<h3 id="2-4配置npm清华镜像"><a href="#2-4配置npm清华镜像" class="headerlink" title="2.4配置npm清华镜像"></a>2.4配置npm清华镜像</h3><blockquote>
-<p>如果不配置的话npm install会很慢</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#持久配置</span><br><span class="line">npm config set registry http://npm.tuna.tsinghua.edu.cn/registry</span><br><span class="line">#检查配置是否成功</span><br><span class="line">npm config get registry</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-<h2 id="3-将vue项目传输到服务器"><a href="#3-将vue项目传输到服务器" class="headerlink" title="3.将vue项目传输到服务器"></a>3.将vue项目传输到服务器</h2><blockquote>
-<p>通过filezilla传输或者其他的自行选择</p>
-<p>node_modules不要上传，因为服务器和你自己本地的npm环境是不一样的，上传了运行时也会报错，到时候还得老老实实删掉重新npm install.</p>
-</blockquote>
-<p>把项目放在服务器你想放的位置</p>
-<p>然后先npm install，再npm run serve</p>
-<p><img src="http://img.cwiyc.top/nginx-22.png" alt="image-20220515102415064"></p>
-<h2 id="4-配置nginx"><a href="#4-配置nginx" class="headerlink" title="4.配置nginx"></a>4.配置nginx</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#用vim编辑你的nginx.conf</span><br><span class="line">#如果你是按我上一篇文章安装的nginx，那么就是如下命令</span><br><span class="line">vim /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
-
-<p><img src="http://img.cwiyc.top/nginx-23.png" alt="image-20220515104601494"></p>
-<p>上面这样配置的意思是用nginx 80端口服务来代理你的localhost:8080端口服务</p>
-<p>这时你可以在服务器上的浏览器访问localhost:80访问你的vue项目了</p>
-<h2 id="5-防火墙"><a href="#5-防火墙" class="headerlink" title="5.防火墙"></a>5.<del>防火墙</del></h2><p><code>！！！如果在服务器上不需要这一步！，安全组放通端口即可。虚拟机上则需要这一步。！！！</code></p>
-<p><strong>！！！但是这样在外网是访问不了的，由于服务器防火墙的问题</strong></p>
-<p>CentOS7默认使用的是firewall作为防火墙，这里改为iptables防火墙</p>
-<h3 id="5-1-关闭firewalld"><a href="#5-1-关闭firewalld" class="headerlink" title="5.1.关闭firewalld"></a>5.1.关闭firewalld</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld  </span><br><span class="line">systemctl mask firewalld</span><br></pre></td></tr></table></figure>
-
-<h3 id="5-2-使用iptables服务"><a href="#5-2-使用iptables服务" class="headerlink" title="5.2.使用iptables服务"></a>5.2.使用iptables服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、安装iptables防火墙</span><br><span class="line">yum install iptables-services #安装</span><br><span class="line"></span><br><span class="line">2、修改文件配置允许80端口</span><br><span class="line">vim /etc/sysconfig/iptables #编辑防火墙配置文件</span><br><span class="line">按i进入文本编辑 在原文档中找到</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT</span><br><span class="line">在该行下面添加</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</span><br><span class="line">:wq! #保存退出</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#开放443端口(HTTPS)</span><br><span class="line">iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"> </span><br><span class="line">#保存上述规则</span><br><span class="line">service iptables save</span><br><span class="line"> </span><br><span class="line">#开启服务</span><br><span class="line">systemctl restart iptables.service</span><br><span class="line"></span><br><span class="line">#设置防火墙开机启动</span><br><span class="line">systemctl enable iptables.service </span><br></pre></td></tr></table></figure>
-
-<p>防火墙参考整合了一下两篇文章</p>
-<p><a href="https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434">https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434</a></p>
-<p><a href="https://blog.csdn.net/sinat_29821865/article/details/80982250">https://blog.csdn.net/sinat_29821865/article/details/80982250</a></p>
-<h3 id="5-3-重启nginx服务器"><a href="#5-3-重启nginx服务器" class="headerlink" title="5.3.重启nginx服务器"></a>5.3.重启nginx服务器</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-<h1 id="现在你可以在外网输入服务器ip地址访问你的项目了"><a href="#现在你可以在外网输入服务器ip地址访问你的项目了" class="headerlink" title="现在你可以在外网输入服务器ip地址访问你的项目了"></a>现在你可以在外网输入服务器ip地址访问你的项目了</h1>]]></content>
-      <categories>
-        <category>部署</category>
-      </categories>
-      <tags>
-        <tag>Vue</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>singlepush</title>
     <url>/2022/10/04/singlepush/</url>
     <content><![CDATA[<hr>
@@ -374,6 +377,17 @@
       </tags>
   </entry>
   <entry>
+    <title>解决百度文库等各种文库不能复制的问题</title>
+    <url>/2022/04/19/wenku/</url>
+    <content><![CDATA[<h2 id="1-进入网页按下-F12-按钮进入开发者模式"><a href="#1-进入网页按下-F12-按钮进入开发者模式" class="headerlink" title="1.进入网页按下 F12 按钮进入开发者模式"></a>1.进入网页按下 F12 按钮进入开发者模式</h2><h2 id="2-点击如图设置按钮"><a href="#2-点击如图设置按钮" class="headerlink" title="2.点击如图设置按钮"></a>2.点击如图设置按钮</h2><p><img src="http://img.cwiyc.top/wenku1.png" alt="1"></p>
+<h2 id="3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"><a href="#3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。" class="headerlink" title="3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"></a>3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。</h2><p><img src="http://img.cwiyc.top/wenku2.png" alt="2"></p>
+<h2 id="4-这时你就可以尽情复制该页面内容了"><a href="#4-这时你就可以尽情复制该页面内容了" class="headerlink" title="4.这时你就可以尽情复制该页面内容了"></a>4.这时你就可以尽情复制该页面内容了</h2><p>以上是chrome浏览器的样式，像edge等浏览器都大同小异，赶紧去教你的室友吧！！！<br>别忘了点个赞 <strong>heihei~</strong></p>
+]]></content>
+      <categories>
+        <category>小窍门</category>
+      </categories>
+  </entry>
+  <entry>
     <title>vue使用scss报错</title>
     <url>/2022/04/06/website/</url>
     <content><![CDATA[<p>在vue中使用scss需要安装下面三个package</p>
@@ -391,16 +405,5 @@
       <tags>
         <tag>Vue</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>解决百度文库等各种文库不能复制的问题</title>
-    <url>/2022/04/19/wenku/</url>
-    <content><![CDATA[<h2 id="1-进入网页按下-F12-按钮进入开发者模式"><a href="#1-进入网页按下-F12-按钮进入开发者模式" class="headerlink" title="1.进入网页按下 F12 按钮进入开发者模式"></a>1.进入网页按下 F12 按钮进入开发者模式</h2><h2 id="2-点击如图设置按钮"><a href="#2-点击如图设置按钮" class="headerlink" title="2.点击如图设置按钮"></a>2.点击如图设置按钮</h2><p><img src="http://img.cwiyc.top/wenku1.png" alt="1"></p>
-<h2 id="3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"><a href="#3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。" class="headerlink" title="3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"></a>3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。</h2><p><img src="http://img.cwiyc.top/wenku2.png" alt="2"></p>
-<h2 id="4-这时你就可以尽情复制该页面内容了"><a href="#4-这时你就可以尽情复制该页面内容了" class="headerlink" title="4.这时你就可以尽情复制该页面内容了"></a>4.这时你就可以尽情复制该页面内容了</h2><p>以上是chrome浏览器的样式，像edge等浏览器都大同小异，赶紧去教你的室友吧！！！<br>别忘了点个赞 <strong>heihei~</strong></p>
-]]></content>
-      <categories>
-        <category>小窍门</category>
-      </categories>
   </entry>
 </search>

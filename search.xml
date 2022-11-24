@@ -1,51 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>es6尾调用</title>
-    <url>/2022/09/25/es6%E5%B0%BE%E8%B0%83%E7%94%A8/</url>
-    <content><![CDATA[<h3 id="1-尾调用优化"><a href="#1-尾调用优化" class="headerlink" title="1.尾调用优化"></a>1.尾调用优化</h3><blockquote>
-<p>尾调用之所以与其他调用不同，就在于它的特殊的调用位置。</p>
-<p>我们知道，函数调用会在内存形成一个“调用记录”，又称“调用帧”（call frame），保存调用位置和内部变量等信息。如果在函数<code>A</code>的内部调用函数<code>B</code>，那么在<code>A</code>的调用帧上方，还会形成一个<code>B</code>的调用帧。等到<code>B</code>运行结束，将结果返回到<code>A</code>，<code>B</code>的调用帧才会消失。如果函数<code>B</code>内部还调用函数<code>C</code>，那就还有一个<code>C</code>的调用帧，以此类推。所有的调用帧，就形成一个“调用栈”（call stack）。</p>
-<p>尾调用由于是函数的最后一步操作，所以不需要保留外层函数的调用帧，因为调用位置、内部变量等信息都不会再用到了，只要直接用内层函数的调用帧，取代外层函数的调用帧就可以了。</p>
-</blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">f</span>(<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">let</span> m = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">let</span> n = <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">g</span>(m + n);</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_">f</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 等同于</span></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">f</span>(<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">g</span>(<span class="number">3</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_">f</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 等同于</span></span><br><span class="line"><span class="title function_">g</span>(<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>上面代码中，如果函数<code>g</code>不是尾调用，函数<code>f</code>就需要保存内部变量<code>m</code>和<code>n</code>的值、<code>g</code>的调用位置等信息。但由于调用<code>g</code>之后，函数<code>f</code>就结束了，所以执行到最后一步，完全可以删除<code>f(x)</code>的调用帧，只保留<code>g(3)</code>的调用帧。</p>
-<p>这就叫做“尾调用优化”（Tail call optimization），即只保留内层函数的调用帧。如果所有函数都是尾调用，那么完全可以做到每次执行时，调用帧只有一项，这将大大节省内存。这就是“尾调用优化”的意义。</p>
-<p>注意，只有不再用到外层函数的内部变量，内层函数的调用帧才会取代外层函数的调用帧，否则就无法进行“尾调用优化”。</p>
-</blockquote>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">addOne</span>(<span class="params">a</span>)&#123;</span><br><span class="line">  <span class="keyword">var</span> one = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">inner</span>(<span class="params">b</span>)&#123;</span><br><span class="line">    <span class="keyword">return</span> b + one;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">inner</span>(a);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<blockquote>
-<p>上面的函数不会进行尾调用优化，因为内层函数<code>inner</code>用到了外层函数<code>addOne</code>的内部变量<code>one</code>。</p>
-<p>注意，目前只有 Safari 浏览器支持尾调用优化，Chrome 和 Firefox 都不支持。</p>
-</blockquote>
-<h3 id="2-尾递归"><a href="#2-尾递归" class="headerlink" title="2.尾递归"></a>2.尾递归</h3><p>函数调用自身，称为递归。如果尾调用自身，就称为尾递归。</p>
-<p>递归非常耗费内存，因为需要同时保存成千上百个调用帧，很容易发生“栈溢出”错误（stack overflow）。但对于尾递归来说，由于只存在一个调用帧，所以永远不会发生“栈溢出”错误。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">factorial</span>(<span class="params">n</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (n === <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">return</span> n * <span class="title function_">factorial</span>(n - <span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">factorial</span>(<span class="number">5</span>) <span class="comment">// 120</span></span><br></pre></td></tr></table></figure>
-
-<p>上面代码是一个阶乘函数，计算<code>n</code>的阶乘，最多需要保存<code>n</code>个调用记录，复杂度 O(n) 。</p>
-<p>如果改写成尾递归，只保留一个调用记录，复杂度 O(1) 。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">factorial</span>(<span class="params">n, total</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (n === <span class="number">1</span>) <span class="keyword">return</span> total;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">factorial</span>(n - <span class="number">1</span>, n * total);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">factorial</span>(<span class="number">5</span>, <span class="number">1</span>) <span class="comment">// 120</span></span><br></pre></td></tr></table></figure>
-
-<p>还有一个比较著名的例子，就是计算 Fibonacci 数列，也能充分说明尾递归优化的重要性。</p>
-<p>非尾递归的 Fibonacci 数列实现如下。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">Fibonacci</span> (n) &#123;</span><br><span class="line">  <span class="keyword">if</span> ( n &lt;= <span class="number">1</span> ) &#123;<span class="keyword">return</span> <span class="number">1</span>&#125;;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Fibonacci</span>(n - <span class="number">1</span>) + <span class="title class_">Fibonacci</span>(n - <span class="number">2</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">10</span>) <span class="comment">// 89</span></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">100</span>) <span class="comment">// 超时</span></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">500</span>) <span class="comment">// 超时</span></span><br></pre></td></tr></table></figure>
-
-<p>尾递归优化过的 Fibonacci 数列实现如下。</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">Fibonacci2</span> (n , ac1 = <span class="number">1</span> , ac2 = <span class="number">1</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span>( n &lt;= <span class="number">1</span> ) &#123;<span class="keyword">return</span> ac2&#125;;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Fibonacci2</span> (n - <span class="number">1</span>, ac2, ac1 + ac2);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">100</span>) <span class="comment">// 573147844013817200000</span></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">1000</span>) <span class="comment">// 7.0330367711422765e+208</span></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">10000</span>) <span class="comment">// Infinity</span></span><br></pre></td></tr></table></figure>
-
-<p>由此可见，“尾调用优化”对递归操作意义重大，所以一些函数式编程语言将其写入了语言规格。ES6 亦是如此，第一次明确规定，所有 ECMAScript 的实现，都必须部署“尾调用优化”。这就是说，ES6 中只要使用尾递归，就不会发生栈溢出（或者层层递归造成的超时），相对节省内存。</p>
-]]></content>
-      <categories>
-        <category>技术</category>
-      </categories>
-      <tags>
-        <tag>es6</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>docker 部署 vue+springboot前端+后端 整合在一个镜像中</title>
     <url>/2022/11/17/docker-1/</url>
     <content><![CDATA[<blockquote>
@@ -100,6 +55,73 @@
       </tags>
   </entry>
   <entry>
+    <title>服务器部署vue的另一种姿势</title>
+    <url>/2022/05/15/nginx-2/</url>
+    <content><![CDATA[<h1 id="服务器部署vue的另一种姿势"><a href="#服务器部署vue的另一种姿势" class="headerlink" title="服务器部署vue的另一种姿势"></a>服务器部署vue的另一种姿势</h1><blockquote>
+<p>上一篇文章我已经讲到了用yarn build或npm run build 的方法将vue项目编译打包生成静态文件dist的方法</p>
+<p>这次我们讲一下如何使用yarn serve或npm run serve的方法将本地正在运行的项目暴露给外网访问</p>
+</blockquote>
+<h2 id="1-安装nginx"><a href="#1-安装nginx" class="headerlink" title="1.安装nginx"></a>1.安装nginx</h2><blockquote>
+<p>nginx 安装配置nginx的方法我上一篇<a href="https://cwiyc.top/2022/05/14/nginx-1/">文章</a>有（已安装请忽略）</p>
+</blockquote>
+<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
+<p><img src="http://img.cwiyc.top/nginx-21.png" alt="image-20220515100153894"></p>
+<h2 id="2-安装npm和node"><a href="#2-安装npm和node" class="headerlink" title="2.安装npm和node"></a>2.安装npm和node</h2><h3 id="2-1-添加NodeSource-yum仓库"><a href="#2-1-添加NodeSource-yum仓库" class="headerlink" title="2.1.添加NodeSource yum仓库"></a>2.1.添加NodeSource yum仓库</h3><p>运行以下<a href="https://linuxize.com/post/curl-command-examples/"><code>curl</code>命令</a> 将 NodeSource yum 存储库添加到您的系统</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-安装-Node-js-和-npm"><a href="#2-2-安装-Node-js-和-npm" class="headerlink" title="2.2. 安装 Node.js 和 npm"></a>2.2. 安装 Node.js 和 npm</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo yum install nodejs</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-验证-Node-js-和-npm-安装"><a href="#2-3-验证-Node-js-和-npm-安装" class="headerlink" title="2.3. 验证 Node.js 和 npm 安装"></a>2.3. 验证 Node.js 和 npm 安装</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node -v</span><br><span class="line">npm -v</span><br></pre></td></tr></table></figure>
+
+<p>出现版本号则安装成功</p>
+<h3 id="2-4配置npm清华镜像"><a href="#2-4配置npm清华镜像" class="headerlink" title="2.4配置npm清华镜像"></a>2.4配置npm清华镜像</h3><blockquote>
+<p>如果不配置的话npm install会很慢</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#持久配置</span><br><span class="line">npm config set registry http://npm.tuna.tsinghua.edu.cn/registry</span><br><span class="line">#检查配置是否成功</span><br><span class="line">npm config get registry</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h2 id="3-将vue项目传输到服务器"><a href="#3-将vue项目传输到服务器" class="headerlink" title="3.将vue项目传输到服务器"></a>3.将vue项目传输到服务器</h2><blockquote>
+<p>通过filezilla传输或者其他的自行选择</p>
+<p>node_modules不要上传，因为服务器和你自己本地的npm环境是不一样的，上传了运行时也会报错，到时候还得老老实实删掉重新npm install.</p>
+</blockquote>
+<p>把项目放在服务器你想放的位置</p>
+<p>然后先npm install，再npm run serve</p>
+<p><img src="http://img.cwiyc.top/nginx-22.png" alt="image-20220515102415064"></p>
+<h2 id="4-配置nginx"><a href="#4-配置nginx" class="headerlink" title="4.配置nginx"></a>4.配置nginx</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#用vim编辑你的nginx.conf</span><br><span class="line">#如果你是按我上一篇文章安装的nginx，那么就是如下命令</span><br><span class="line">vim /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
+
+<p><img src="http://img.cwiyc.top/nginx-23.png" alt="image-20220515104601494"></p>
+<p>上面这样配置的意思是用nginx 80端口服务来代理你的localhost:8080端口服务</p>
+<p>这时你可以在服务器上的浏览器访问localhost:80访问你的vue项目了</p>
+<h2 id="5-防火墙"><a href="#5-防火墙" class="headerlink" title="5.防火墙"></a>5.<del>防火墙</del></h2><p><code>！！！如果在服务器上不需要这一步！，安全组放通端口即可。虚拟机上则需要这一步。！！！</code></p>
+<p><strong>！！！但是这样在外网是访问不了的，由于服务器防火墙的问题</strong></p>
+<p>CentOS7默认使用的是firewall作为防火墙，这里改为iptables防火墙</p>
+<h3 id="5-1-关闭firewalld"><a href="#5-1-关闭firewalld" class="headerlink" title="5.1.关闭firewalld"></a>5.1.关闭firewalld</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld  </span><br><span class="line">systemctl mask firewalld</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-使用iptables服务"><a href="#5-2-使用iptables服务" class="headerlink" title="5.2.使用iptables服务"></a>5.2.使用iptables服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、安装iptables防火墙</span><br><span class="line">yum install iptables-services #安装</span><br><span class="line"></span><br><span class="line">2、修改文件配置允许80端口</span><br><span class="line">vim /etc/sysconfig/iptables #编辑防火墙配置文件</span><br><span class="line">按i进入文本编辑 在原文档中找到</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT</span><br><span class="line">在该行下面添加</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</span><br><span class="line">:wq! #保存退出</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#开放443端口(HTTPS)</span><br><span class="line">iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"> </span><br><span class="line">#保存上述规则</span><br><span class="line">service iptables save</span><br><span class="line"> </span><br><span class="line">#开启服务</span><br><span class="line">systemctl restart iptables.service</span><br><span class="line"></span><br><span class="line">#设置防火墙开机启动</span><br><span class="line">systemctl enable iptables.service </span><br></pre></td></tr></table></figure>
+
+<p>防火墙参考整合了一下两篇文章</p>
+<p><a href="https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434">https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434</a></p>
+<p><a href="https://blog.csdn.net/sinat_29821865/article/details/80982250">https://blog.csdn.net/sinat_29821865/article/details/80982250</a></p>
+<h3 id="5-3-重启nginx服务器"><a href="#5-3-重启nginx服务器" class="headerlink" title="5.3.重启nginx服务器"></a>5.3.重启nginx服务器</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+<h1 id="现在你可以在外网输入服务器ip地址访问你的项目了"><a href="#现在你可以在外网输入服务器ip地址访问你的项目了" class="headerlink" title="现在你可以在外网输入服务器ip地址访问你的项目了"></a>现在你可以在外网输入服务器ip地址访问你的项目了</h1>]]></content>
+      <categories>
+        <category>部署</category>
+      </categories>
+      <tags>
+        <tag>Vue</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Hello World</title>
     <url>/2022/04/06/hello-world/</url>
     <content><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
@@ -116,6 +138,51 @@
 
 <p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
 ]]></content>
+  </entry>
+  <entry>
+    <title>es6尾调用</title>
+    <url>/2022/09/25/es6%E5%B0%BE%E8%B0%83%E7%94%A8/</url>
+    <content><![CDATA[<h3 id="1-尾调用优化"><a href="#1-尾调用优化" class="headerlink" title="1.尾调用优化"></a>1.尾调用优化</h3><blockquote>
+<p>尾调用之所以与其他调用不同，就在于它的特殊的调用位置。</p>
+<p>我们知道，函数调用会在内存形成一个“调用记录”，又称“调用帧”（call frame），保存调用位置和内部变量等信息。如果在函数<code>A</code>的内部调用函数<code>B</code>，那么在<code>A</code>的调用帧上方，还会形成一个<code>B</code>的调用帧。等到<code>B</code>运行结束，将结果返回到<code>A</code>，<code>B</code>的调用帧才会消失。如果函数<code>B</code>内部还调用函数<code>C</code>，那就还有一个<code>C</code>的调用帧，以此类推。所有的调用帧，就形成一个“调用栈”（call stack）。</p>
+<p>尾调用由于是函数的最后一步操作，所以不需要保留外层函数的调用帧，因为调用位置、内部变量等信息都不会再用到了，只要直接用内层函数的调用帧，取代外层函数的调用帧就可以了。</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">f</span>(<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">let</span> m = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">let</span> n = <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">g</span>(m + n);</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_">f</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 等同于</span></span><br><span class="line"><span class="keyword">function</span> <span class="title function_">f</span>(<span class="params"></span>) &#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">g</span>(<span class="number">3</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="title function_">f</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 等同于</span></span><br><span class="line"><span class="title function_">g</span>(<span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>上面代码中，如果函数<code>g</code>不是尾调用，函数<code>f</code>就需要保存内部变量<code>m</code>和<code>n</code>的值、<code>g</code>的调用位置等信息。但由于调用<code>g</code>之后，函数<code>f</code>就结束了，所以执行到最后一步，完全可以删除<code>f(x)</code>的调用帧，只保留<code>g(3)</code>的调用帧。</p>
+<p>这就叫做“尾调用优化”（Tail call optimization），即只保留内层函数的调用帧。如果所有函数都是尾调用，那么完全可以做到每次执行时，调用帧只有一项，这将大大节省内存。这就是“尾调用优化”的意义。</p>
+<p>注意，只有不再用到外层函数的内部变量，内层函数的调用帧才会取代外层函数的调用帧，否则就无法进行“尾调用优化”。</p>
+</blockquote>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">addOne</span>(<span class="params">a</span>)&#123;</span><br><span class="line">  <span class="keyword">var</span> one = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">function</span> <span class="title function_">inner</span>(<span class="params">b</span>)&#123;</span><br><span class="line">    <span class="keyword">return</span> b + one;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">inner</span>(a);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>上面的函数不会进行尾调用优化，因为内层函数<code>inner</code>用到了外层函数<code>addOne</code>的内部变量<code>one</code>。</p>
+<p>注意，目前只有 Safari 浏览器支持尾调用优化，Chrome 和 Firefox 都不支持。</p>
+</blockquote>
+<h3 id="2-尾递归"><a href="#2-尾递归" class="headerlink" title="2.尾递归"></a>2.尾递归</h3><p>函数调用自身，称为递归。如果尾调用自身，就称为尾递归。</p>
+<p>递归非常耗费内存，因为需要同时保存成千上百个调用帧，很容易发生“栈溢出”错误（stack overflow）。但对于尾递归来说，由于只存在一个调用帧，所以永远不会发生“栈溢出”错误。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">factorial</span>(<span class="params">n</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (n === <span class="number">1</span>) <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">return</span> n * <span class="title function_">factorial</span>(n - <span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">factorial</span>(<span class="number">5</span>) <span class="comment">// 120</span></span><br></pre></td></tr></table></figure>
+
+<p>上面代码是一个阶乘函数，计算<code>n</code>的阶乘，最多需要保存<code>n</code>个调用记录，复杂度 O(n) 。</p>
+<p>如果改写成尾递归，只保留一个调用记录，复杂度 O(1) 。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">factorial</span>(<span class="params">n, total</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span> (n === <span class="number">1</span>) <span class="keyword">return</span> total;</span><br><span class="line">  <span class="keyword">return</span> <span class="title function_">factorial</span>(n - <span class="number">1</span>, n * total);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title function_">factorial</span>(<span class="number">5</span>, <span class="number">1</span>) <span class="comment">// 120</span></span><br></pre></td></tr></table></figure>
+
+<p>还有一个比较著名的例子，就是计算 Fibonacci 数列，也能充分说明尾递归优化的重要性。</p>
+<p>非尾递归的 Fibonacci 数列实现如下。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">Fibonacci</span> (n) &#123;</span><br><span class="line">  <span class="keyword">if</span> ( n &lt;= <span class="number">1</span> ) &#123;<span class="keyword">return</span> <span class="number">1</span>&#125;;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Fibonacci</span>(n - <span class="number">1</span>) + <span class="title class_">Fibonacci</span>(n - <span class="number">2</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">10</span>) <span class="comment">// 89</span></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">100</span>) <span class="comment">// 超时</span></span><br><span class="line"><span class="title class_">Fibonacci</span>(<span class="number">500</span>) <span class="comment">// 超时</span></span><br></pre></td></tr></table></figure>
+
+<p>尾递归优化过的 Fibonacci 数列实现如下。</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">Fibonacci2</span> (n , ac1 = <span class="number">1</span> , ac2 = <span class="number">1</span>) &#123;</span><br><span class="line">  <span class="keyword">if</span>( n &lt;= <span class="number">1</span> ) &#123;<span class="keyword">return</span> ac2&#125;;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> <span class="title class_">Fibonacci2</span> (n - <span class="number">1</span>, ac2, ac1 + ac2);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">100</span>) <span class="comment">// 573147844013817200000</span></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">1000</span>) <span class="comment">// 7.0330367711422765e+208</span></span><br><span class="line"><span class="title class_">Fibonacci2</span>(<span class="number">10000</span>) <span class="comment">// Infinity</span></span><br></pre></td></tr></table></figure>
+
+<p>由此可见，“尾调用优化”对递归操作意义重大，所以一些函数式编程语言将其写入了语言规格。ES6 亦是如此，第一次明确规定，所有 ECMAScript 的实现，都必须部署“尾调用优化”。这就是说，ES6 中只要使用尾递归，就不会发生栈溢出（或者层层递归造成的超时），相对节省内存。</p>
+]]></content>
+      <categories>
+        <category>技术</category>
+      </categories>
+      <tags>
+        <tag>es6</tag>
+      </tags>
   </entry>
   <entry>
     <title>3D旋转木马 HTML+css</title>
@@ -231,71 +298,58 @@
       </tags>
   </entry>
   <entry>
-    <title>服务器部署vue的另一种姿势</title>
-    <url>/2022/05/15/nginx-2/</url>
-    <content><![CDATA[<h1 id="服务器部署vue的另一种姿势"><a href="#服务器部署vue的另一种姿势" class="headerlink" title="服务器部署vue的另一种姿势"></a>服务器部署vue的另一种姿势</h1><blockquote>
-<p>上一篇文章我已经讲到了用yarn build或npm run build 的方法将vue项目编译打包生成静态文件dist的方法</p>
-<p>这次我们讲一下如何使用yarn serve或npm run serve的方法将本地正在运行的项目暴露给外网访问</p>
+    <title>React18实现keepalive效果 react-router-dom@6 outlet 路由页面缓存</title>
+    <url>/2022/11/13/react-keep-alive-router6/</url>
+    <content><![CDATA[<p><code>前言：React18实现keepalive效果 react-router-dom@6 outlet 路由页面缓存</code><br><code>注意是实现路由页面的缓存，其他的看官方文档自己摸索，原理都是一样的</code></p>
+<h1 id="1-版本环境"><a href="#1-版本环境" class="headerlink" title="1.版本环境"></a>1.版本环境</h1><figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="attr">&quot;react&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^18.2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;react-dom&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^18.2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;react-router-dom&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^6.4.2&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>按道理版本低一点也没有什么关系。</p>
+<h1 id="2-react-activation"><a href="#2-react-activation" class="headerlink" title="2.react-activation"></a>2.react-activation</h1><blockquote>
+<p>这是一个npm包，在react keep alive中用的人数应该是最多的包.<br>这是GitHub地址<a href="https://github.com/CJY0208/react-activation/blob/master/README_CN.md">react-activation</a></p>
 </blockquote>
-<h2 id="1-安装nginx"><a href="#1-安装nginx" class="headerlink" title="1.安装nginx"></a>1.安装nginx</h2><blockquote>
-<p>nginx 安装配置nginx的方法我上一篇<a href="https://cwiyc.top/2022/05/14/nginx-1/">文章</a>有（已安装请忽略）</p>
-</blockquote>
-<p><strong>!!!注意!!! 在终端输入命令之前先输入su，切换到root用户，不然很多操作都用不了</strong></p>
-<p><img src="http://img.cwiyc.top/nginx-21.png" alt="image-20220515100153894"></p>
-<h2 id="2-安装npm和node"><a href="#2-安装npm和node" class="headerlink" title="2.安装npm和node"></a>2.安装npm和node</h2><h3 id="2-1-添加NodeSource-yum仓库"><a href="#2-1-添加NodeSource-yum仓库" class="headerlink" title="2.1.添加NodeSource yum仓库"></a>2.1.添加NodeSource yum仓库</h3><p>运行以下<a href="https://linuxize.com/post/curl-command-examples/"><code>curl</code>命令</a> 将 NodeSource yum 存储库添加到您的系统</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">curl -sL https://rpm.nodesource.com/setup_10.x | sudo bash -</span><br></pre></td></tr></table></figure>
+<h2 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1.安装"></a>2.1.安装</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">yarn add react-activation</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或者</span></span><br><span class="line">npm install react-activation</span><br></pre></td></tr></table></figure>
 
-<h3 id="2-2-安装-Node-js-和-npm"><a href="#2-2-安装-Node-js-和-npm" class="headerlink" title="2.2. 安装 Node.js 和 npm"></a>2.2. 安装 Node.js 和 npm</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">sudo yum install nodejs</span><br></pre></td></tr></table></figure>
+<h2 id="2-2-关闭严格模式"><a href="#2-2-关闭严格模式" class="headerlink" title="2.2.关闭严格模式"></a>2.2.关闭严格模式</h2><p>在main.tsx里把&lt;React.StrictMode&gt;&lt;/React.StrictMode&gt;这个标签删掉。</p>
+<h2 id="2-3-AliveScope使用"><a href="#2-3-AliveScope使用" class="headerlink" title="2.3.AliveScope使用"></a>2.3.AliveScope使用</h2><p>一般把AliveScope放在App外层，但是要在Router内层。<br><img src="https://img-blog.csdnimg.cn/3aad69be6ebd43d7970a9da8bd4f5700.png" alt="在这里插入图片描述"></p>
+<h2 id="2-4-KeepAlive使用"><a href="#2-4-KeepAlive使用" class="headerlink" title="2.4.KeepAlive使用"></a>2.4.KeepAlive使用</h2><p>在路由表里</p>
+<figure class="highlight typescript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="title class_">Login</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Login&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Main</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Query</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main/Query&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Index</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main/Index/index&quot;</span>;</span><br><span class="line"><span class="comment">//如果懒加载的话第一次点击不能渲染出组件,要缓存的路由不能懒加载！！</span></span><br><span class="line"><span class="comment">// const Query = lazy(() =&gt; import(&quot;../pages/Main/Query&quot;))</span></span><br><span class="line"><span class="keyword">import</span> <span class="title class_">KeepAlive</span> <span class="keyword">from</span> <span class="string">&#x27;react-activation&#x27;</span></span><br><span class="line"><span class="keyword">const</span> <span class="attr">routes</span>: <span class="title class_">RouteObject</span>[] = [</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">path</span>: <span class="string">&#x27;/main&#x27;</span>,</span><br><span class="line">        <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">Main</span> /&gt;</span></span>,</span><br><span class="line">        <span class="attr">children</span>: [</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">path</span>: <span class="string">&quot;index&quot;</span>,</span><br><span class="line">                <span class="comment">//KeepAlive一定一定要加id！！！</span></span><br><span class="line">                <span class="attr">element</span>:<span class="language-xml"><span class="tag">&lt;<span class="name">KeepAlive</span> <span class="attr">id</span>=<span class="string">&quot;index&quot;</span> &gt;</span><span class="tag">&lt;<span class="name">Index</span> /&gt;</span><span class="tag">&lt;/<span class="name">KeepAlive</span>&gt;</span></span></span><br><span class="line">            &#125;,</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">path</span>: <span class="string">&quot;query&quot;</span>,</span><br><span class="line">                <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">KeepAlive</span> <span class="attr">id</span>=<span class="string">&quot;query&quot;</span>&gt;</span><span class="tag">&lt;<span class="name">Query</span> /&gt;</span><span class="tag">&lt;/<span class="name">KeepAlive</span>&gt;</span></span></span><br><span class="line">            &#125;,</span><br><span class="line">        ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">path</span>: <span class="string">&#x27;/login&#x27;</span>,</span><br><span class="line">        <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">Login</span> /&gt;</span></span></span><br><span class="line">    &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
 
-<h3 id="2-3-验证-Node-js-和-npm-安装"><a href="#2-3-验证-Node-js-和-npm-安装" class="headerlink" title="2.3. 验证 Node.js 和 npm 安装"></a>2.3. 验证 Node.js 和 npm 安装</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node -v</span><br><span class="line">npm -v</span><br></pre></td></tr></table></figure>
+<p><code>KeepAlive标签一定一定要加id！！！</code><br><code>要缓存的路由不能懒加载！！!</code></p>
+<h2 id="2-5-Outlet放置"><a href="#2-5-Outlet放置" class="headerlink" title="2.5.Outlet放置"></a>2.5.Outlet放置</h2><p>正常放就行，该放哪就放哪。我这个就是放在Main组件里，因为我的&lt;Index /&gt;和&lt;Query /&gt;两个子路由都是属于&lt;Main /&gt;的。<br><img src="https://img-blog.csdnimg.cn/a19076c43bde4829bf05f26ac8e2fc18.png" alt="在这里插入图片描述"></p>
+<h1 id="3-结束"><a href="#3-结束" class="headerlink" title="3.结束"></a>3.结束</h1>]]></content>
+      <tags>
+        <tag>React</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>vue使用scss报错</title>
+    <url>/2022/04/06/website/</url>
+    <content><![CDATA[<p>在vue中使用scss需要安装下面三个package</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node-sass</span><br><span class="line">sass-loader</span><br><span class="line">style-loader</span><br></pre></td></tr></table></figure>
 
-<p>出现版本号则安装成功</p>
-<h3 id="2-4配置npm清华镜像"><a href="#2-4配置npm清华镜像" class="headerlink" title="2.4配置npm清华镜像"></a>2.4配置npm清华镜像</h3><blockquote>
-<p>如果不配置的话npm install会很慢</p>
-</blockquote>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#持久配置</span><br><span class="line">npm config set registry http://npm.tuna.tsinghua.edu.cn/registry</span><br><span class="line">#检查配置是否成功</span><br><span class="line">npm config get registry</span><br></pre></td></tr></table></figure>
+<p>但直接用<strong>yarn add node-sass</strong>这条命令安装的话，最后会报很多错误。因为这个命令默认安装的是该包的最新版本，node-sass和sass-loader会出现<strong>不兼容</strong>的问题。<br>所以我们用一下命令指定安装兼容版本</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">yarn add node-sass@^4.14.1 --dev</span><br><span class="line">yarn add sass-loader@^7.3.1 --dev</span><br><span class="line">yarn add style-loader --dev</span><br></pre></td></tr></table></figure>
 
-
-
-
-
-<h2 id="3-将vue项目传输到服务器"><a href="#3-将vue项目传输到服务器" class="headerlink" title="3.将vue项目传输到服务器"></a>3.将vue项目传输到服务器</h2><blockquote>
-<p>通过filezilla传输或者其他的自行选择</p>
-<p>node_modules不要上传，因为服务器和你自己本地的npm环境是不一样的，上传了运行时也会报错，到时候还得老老实实删掉重新npm install.</p>
-</blockquote>
-<p>把项目放在服务器你想放的位置</p>
-<p>然后先npm install，再npm run serve</p>
-<p><img src="http://img.cwiyc.top/nginx-22.png" alt="image-20220515102415064"></p>
-<h2 id="4-配置nginx"><a href="#4-配置nginx" class="headerlink" title="4.配置nginx"></a>4.配置nginx</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">#用vim编辑你的nginx.conf</span><br><span class="line">#如果你是按我上一篇文章安装的nginx，那么就是如下命令</span><br><span class="line">vim /usr/local/nginx/conf/nginx.conf</span><br></pre></td></tr></table></figure>
-
-<p><img src="http://img.cwiyc.top/nginx-23.png" alt="image-20220515104601494"></p>
-<p>上面这样配置的意思是用nginx 80端口服务来代理你的localhost:8080端口服务</p>
-<p>这时你可以在服务器上的浏览器访问localhost:80访问你的vue项目了</p>
-<h2 id="5-防火墙"><a href="#5-防火墙" class="headerlink" title="5.防火墙"></a>5.<del>防火墙</del></h2><p><code>！！！如果在服务器上不需要这一步！，安全组放通端口即可。虚拟机上则需要这一步。！！！</code></p>
-<p><strong>！！！但是这样在外网是访问不了的，由于服务器防火墙的问题</strong></p>
-<p>CentOS7默认使用的是firewall作为防火墙，这里改为iptables防火墙</p>
-<h3 id="5-1-关闭firewalld"><a href="#5-1-关闭firewalld" class="headerlink" title="5.1.关闭firewalld"></a>5.1.关闭firewalld</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld  </span><br><span class="line">systemctl mask firewalld</span><br></pre></td></tr></table></figure>
-
-<h3 id="5-2-使用iptables服务"><a href="#5-2-使用iptables服务" class="headerlink" title="5.2.使用iptables服务"></a>5.2.使用iptables服务</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">1、安装iptables防火墙</span><br><span class="line">yum install iptables-services #安装</span><br><span class="line"></span><br><span class="line">2、修改文件配置允许80端口</span><br><span class="line">vim /etc/sysconfig/iptables #编辑防火墙配置文件</span><br><span class="line">按i进入文本编辑 在原文档中找到</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 22 -j ACCEPT</span><br><span class="line">在该行下面添加</span><br><span class="line">-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</span><br><span class="line">:wq! #保存退出</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">#开放443端口(HTTPS)</span><br><span class="line">iptables -A INPUT -p tcp --dport 443 -j ACCEPT</span><br><span class="line"> </span><br><span class="line">#保存上述规则</span><br><span class="line">service iptables save</span><br><span class="line"> </span><br><span class="line">#开启服务</span><br><span class="line">systemctl restart iptables.service</span><br><span class="line"></span><br><span class="line">#设置防火墙开机启动</span><br><span class="line">systemctl enable iptables.service </span><br></pre></td></tr></table></figure>
-
-<p>防火墙参考整合了一下两篇文章</p>
-<p><a href="https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434">https://blog.csdn.net/XlxfyzsFdblj/article/details/78724434</a></p>
-<p><a href="https://blog.csdn.net/sinat_29821865/article/details/80982250">https://blog.csdn.net/sinat_29821865/article/details/80982250</a></p>
-<h3 id="5-3-重启nginx服务器"><a href="#5-3-重启nginx服务器" class="headerlink" title="5.3.重启nginx服务器"></a>5.3.重启nginx服务器</h3><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/usr/local/nginx/sbin/nginx -s reload</span><br></pre></td></tr></table></figure>
-
-
-
-
-
-
-
-<h1 id="现在你可以在外网输入服务器ip地址访问你的项目了"><a href="#现在你可以在外网输入服务器ip地址访问你的项目了" class="headerlink" title="现在你可以在外网输入服务器ip地址访问你的项目了"></a>现在你可以在外网输入服务器ip地址访问你的项目了</h1>]]></content>
+<p>这里的- -dev表示安装为开发时依赖<br>像less sass scss 这种<strong>预处理器</strong>只有在开发的时候才能用到，将整个项目打包后(此时已不再是”开发模式”)，项目里面的样式已经变为css，用户在拿到该项目的包之后执行<strong>yarn install</strong>时，不会下载package.json里开发依赖的包，只会下载运行依赖的包，减小了负担。</p>
+<p><img src="https://img-blog.csdnimg.cn/5cd4b414a02d43aebe94a608510d2893.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA5b-F5LiN5Y-v6IO956eD,size_17,color_FFFFFF,t_70,g_se,x_16"></p>
+]]></content>
       <categories>
-        <category>部署</category>
+        <category>小问题</category>
       </categories>
       <tags>
         <tag>Vue</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>解决百度文库等各种文库不能复制的问题</title>
+    <url>/2022/04/19/wenku/</url>
+    <content><![CDATA[<h2 id="1-进入网页按下-F12-按钮进入开发者模式"><a href="#1-进入网页按下-F12-按钮进入开发者模式" class="headerlink" title="1.进入网页按下 F12 按钮进入开发者模式"></a>1.进入网页按下 F12 按钮进入开发者模式</h2><h2 id="2-点击如图设置按钮"><a href="#2-点击如图设置按钮" class="headerlink" title="2.点击如图设置按钮"></a>2.点击如图设置按钮</h2><p><img src="http://img.cwiyc.top/wenku1.png" alt="1"></p>
+<h2 id="3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"><a href="#3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。" class="headerlink" title="3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"></a>3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。</h2><p><img src="http://img.cwiyc.top/wenku2.png" alt="2"></p>
+<h2 id="4-这时你就可以尽情复制该页面内容了"><a href="#4-这时你就可以尽情复制该页面内容了" class="headerlink" title="4.这时你就可以尽情复制该页面内容了"></a>4.这时你就可以尽情复制该页面内容了</h2><p>以上是chrome浏览器的样式，像edge等浏览器都大同小异，赶紧去教你的室友吧！！！<br>别忘了点个赞 <strong>heihei~</strong></p>
+]]></content>
+      <categories>
+        <category>小窍门</category>
+      </categories>
   </entry>
   <entry>
     <title>微信公众号早安定时推送、提醒(自由发挥)，无需花钱购买服务器，免费自动推送方法NodeJs，leancloud，serverless(已更新，非常简单)</title>
@@ -352,59 +406,5 @@
       <categories>
         <category>闲来无事</category>
       </categories>
-  </entry>
-  <entry>
-    <title>解决百度文库等各种文库不能复制的问题</title>
-    <url>/2022/04/19/wenku/</url>
-    <content><![CDATA[<h2 id="1-进入网页按下-F12-按钮进入开发者模式"><a href="#1-进入网页按下-F12-按钮进入开发者模式" class="headerlink" title="1.进入网页按下 F12 按钮进入开发者模式"></a>1.进入网页按下 F12 按钮进入开发者模式</h2><h2 id="2-点击如图设置按钮"><a href="#2-点击如图设置按钮" class="headerlink" title="2.点击如图设置按钮"></a>2.点击如图设置按钮</h2><p><img src="http://img.cwiyc.top/wenku1.png" alt="1"></p>
-<h2 id="3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"><a href="#3-将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。" class="headerlink" title="3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。"></a>3.将滑轮滑倒最下面将该选项打勾，勾选该选项是禁用本页面的JavaScript（也就是阻止用户与页面交互）。</h2><p><img src="http://img.cwiyc.top/wenku2.png" alt="2"></p>
-<h2 id="4-这时你就可以尽情复制该页面内容了"><a href="#4-这时你就可以尽情复制该页面内容了" class="headerlink" title="4.这时你就可以尽情复制该页面内容了"></a>4.这时你就可以尽情复制该页面内容了</h2><p>以上是chrome浏览器的样式，像edge等浏览器都大同小异，赶紧去教你的室友吧！！！<br>别忘了点个赞 <strong>heihei~</strong></p>
-]]></content>
-      <categories>
-        <category>小窍门</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>React18实现keepalive效果 react-router-dom@6 outlet 路由页面缓存</title>
-    <url>/2022/11/13/react-keep-alive-router6/</url>
-    <content><![CDATA[<p><code>前言：React18实现keepalive效果 react-router-dom@6 outlet 路由页面缓存</code><br><code>注意是实现路由页面的缓存，其他的看官方文档自己摸索，原理都是一样的</code></p>
-<h1 id="1-版本环境"><a href="#1-版本环境" class="headerlink" title="1.版本环境"></a>1.版本环境</h1><figure class="highlight json"><table><tr><td class="code"><pre><span class="line"><span class="attr">&quot;react&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^18.2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;react-dom&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^18.2.0&quot;</span><span class="punctuation">,</span></span><br><span class="line"><span class="attr">&quot;react-router-dom&quot;</span><span class="punctuation">:</span> <span class="string">&quot;^6.4.2&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>按道理版本低一点也没有什么关系。</p>
-<h1 id="2-react-activation"><a href="#2-react-activation" class="headerlink" title="2.react-activation"></a>2.react-activation</h1><blockquote>
-<p>这是一个npm包，在react keep alive中用的人数应该是最多的包.<br>这是GitHub地址<a href="https://github.com/CJY0208/react-activation/blob/master/README_CN.md">react-activation</a></p>
-</blockquote>
-<h2 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1.安装"></a>2.1.安装</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">yarn add react-activation</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">或者</span></span><br><span class="line">npm install react-activation</span><br></pre></td></tr></table></figure>
-
-<h2 id="2-2-关闭严格模式"><a href="#2-2-关闭严格模式" class="headerlink" title="2.2.关闭严格模式"></a>2.2.关闭严格模式</h2><p>在main.tsx里把&lt;React.StrictMode&gt;&lt;/React.StrictMode&gt;这个标签删掉。</p>
-<h2 id="2-3-AliveScope使用"><a href="#2-3-AliveScope使用" class="headerlink" title="2.3.AliveScope使用"></a>2.3.AliveScope使用</h2><p>一般把AliveScope放在App外层，但是要在Router内层。<br><img src="https://img-blog.csdnimg.cn/3aad69be6ebd43d7970a9da8bd4f5700.png" alt="在这里插入图片描述"></p>
-<h2 id="2-4-KeepAlive使用"><a href="#2-4-KeepAlive使用" class="headerlink" title="2.4.KeepAlive使用"></a>2.4.KeepAlive使用</h2><p>在路由表里</p>
-<figure class="highlight typescript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> <span class="title class_">Login</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Login&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Main</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Query</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main/Query&quot;</span>;</span><br><span class="line"><span class="keyword">import</span> <span class="title class_">Index</span> <span class="keyword">from</span> <span class="string">&quot;../pages/Main/Index/index&quot;</span>;</span><br><span class="line"><span class="comment">//如果懒加载的话第一次点击不能渲染出组件,要缓存的路由不能懒加载！！</span></span><br><span class="line"><span class="comment">// const Query = lazy(() =&gt; import(&quot;../pages/Main/Query&quot;))</span></span><br><span class="line"><span class="keyword">import</span> <span class="title class_">KeepAlive</span> <span class="keyword">from</span> <span class="string">&#x27;react-activation&#x27;</span></span><br><span class="line"><span class="keyword">const</span> <span class="attr">routes</span>: <span class="title class_">RouteObject</span>[] = [</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">path</span>: <span class="string">&#x27;/main&#x27;</span>,</span><br><span class="line">        <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">Main</span> /&gt;</span></span>,</span><br><span class="line">        <span class="attr">children</span>: [</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">path</span>: <span class="string">&quot;index&quot;</span>,</span><br><span class="line">                <span class="comment">//KeepAlive一定一定要加id！！！</span></span><br><span class="line">                <span class="attr">element</span>:<span class="language-xml"><span class="tag">&lt;<span class="name">KeepAlive</span> <span class="attr">id</span>=<span class="string">&quot;index&quot;</span> &gt;</span><span class="tag">&lt;<span class="name">Index</span> /&gt;</span><span class="tag">&lt;/<span class="name">KeepAlive</span>&gt;</span></span></span><br><span class="line">            &#125;,</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">path</span>: <span class="string">&quot;query&quot;</span>,</span><br><span class="line">                <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">KeepAlive</span> <span class="attr">id</span>=<span class="string">&quot;query&quot;</span>&gt;</span><span class="tag">&lt;<span class="name">Query</span> /&gt;</span><span class="tag">&lt;/<span class="name">KeepAlive</span>&gt;</span></span></span><br><span class="line">            &#125;,</span><br><span class="line">        ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">path</span>: <span class="string">&#x27;/login&#x27;</span>,</span><br><span class="line">        <span class="attr">element</span>: <span class="language-xml"><span class="tag">&lt;<span class="name">Login</span> /&gt;</span></span></span><br><span class="line">    &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
-
-<p><code>KeepAlive标签一定一定要加id！！！</code><br><code>要缓存的路由不能懒加载！！!</code></p>
-<h2 id="2-5-Outlet放置"><a href="#2-5-Outlet放置" class="headerlink" title="2.5.Outlet放置"></a>2.5.Outlet放置</h2><p>正常放就行，该放哪就放哪。我这个就是放在Main组件里，因为我的&lt;Index /&gt;和&lt;Query /&gt;两个子路由都是属于&lt;Main /&gt;的。<br><img src="https://img-blog.csdnimg.cn/a19076c43bde4829bf05f26ac8e2fc18.png" alt="在这里插入图片描述"></p>
-<h1 id="3-结束"><a href="#3-结束" class="headerlink" title="3.结束"></a>3.结束</h1>]]></content>
-      <tags>
-        <tag>React</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>vue使用scss报错</title>
-    <url>/2022/04/06/website/</url>
-    <content><![CDATA[<p>在vue中使用scss需要安装下面三个package</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">node-sass</span><br><span class="line">sass-loader</span><br><span class="line">style-loader</span><br></pre></td></tr></table></figure>
-
-<p>但直接用<strong>yarn add node-sass</strong>这条命令安装的话，最后会报很多错误。因为这个命令默认安装的是该包的最新版本，node-sass和sass-loader会出现<strong>不兼容</strong>的问题。<br>所以我们用一下命令指定安装兼容版本</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">yarn add node-sass@^4.14.1 --dev</span><br><span class="line">yarn add sass-loader@^7.3.1 --dev</span><br><span class="line">yarn add style-loader --dev</span><br></pre></td></tr></table></figure>
-
-<p>这里的- -dev表示安装为开发时依赖<br>像less sass scss 这种<strong>预处理器</strong>只有在开发的时候才能用到，将整个项目打包后(此时已不再是”开发模式”)，项目里面的样式已经变为css，用户在拿到该项目的包之后执行<strong>yarn install</strong>时，不会下载package.json里开发依赖的包，只会下载运行依赖的包，减小了负担。</p>
-<p><img src="https://img-blog.csdnimg.cn/5cd4b414a02d43aebe94a608510d2893.png?x-oss-process=image/watermark,type_d3F5LXplbmhlaQ,shadow_50,text_Q1NETiBA5b-F5LiN5Y-v6IO956eD,size_17,color_FFFFFF,t_70,g_se,x_16"></p>
-]]></content>
-      <categories>
-        <category>小问题</category>
-      </categories>
-      <tags>
-        <tag>Vue</tag>
-      </tags>
   </entry>
 </search>
